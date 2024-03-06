@@ -58,7 +58,10 @@ class JasperTS {
             java = require('java');
         }
         if (!this.options.path) {
-            this.options.path = path.join(path.dirname(module.filename), 'jar');
+            this.options.path = path.join(path.dirname(module.filename), '../', 'jar');
+        }
+        else {
+            this.options.path = path.resolve(process.cwd(), this.options.path);
         }
         if (this.options.java) {
             if (Array.isArray(this.options.java)) {
@@ -72,7 +75,7 @@ class JasperTS {
         }
         var self = this;
         self.parentPath = path.dirname(module.filename);
-        var jrPath = path.resolve(self.parentPath, this.options.path || '.');
+        var jrPath = path.resolve(this.options.path || self.parentPath);
         async.auto({
             jrJars: function (cb) {
                 if (fs.statSync(path.join(jrPath, 'lib')).isDirectory() && fs.statSync(path.join(jrPath, 'dist')).isDirectory()) {
@@ -308,15 +311,15 @@ class JasperTS {
         for (var name in self.reports) {
             var report = self.reports[name];
             if (report.jrxml) {
-                report.jasper = self.compileSync(report.jrxml, dstFolder || self.tmpPath);
+                report.jasper = self.compileSync(report.jrxml, path.resolve(process.cwd(), dstFolder || self.tmpPath));
             }
         }
     }
     compileSync(jrxmlFile, dstFolder) {
         var self = this;
         var name = path.basename(jrxmlFile, '.jrxml');
-        var file = path.join(dstFolder || self.tmpPath, name + '.jasper');
-        java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(self.parentPath, jrxmlFile), file);
+        var file = path.resolve(process.cwd(), path.join(dstFolder || self.tmpPath, name + '.jasper'));
+        java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(process.cwd(), jrxmlFile), file);
         return file;
     }
     static compileAllSync(params) {

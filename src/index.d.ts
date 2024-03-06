@@ -65,8 +65,8 @@ declare class JasperTS {
         data: any;
     }): Promise<any>;
     export(report: any, type: string): Promise<any>;
-    compileAllSync(dstFolder: string | undefined): void;
-    compileSync(jrxmlFile: string, dstFolder: string | undefined): any;
+    compileAllSync(dstFolder?: string | undefined): void;
+    compileSync(jrxmlFile: string, dstFolder?: string | undefined): any;
     static compileAllSync(params: {
         path: string;
         dstFolder: string | undefined;
