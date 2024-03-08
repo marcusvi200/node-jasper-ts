@@ -1,15 +1,15 @@
-interface options_reports {
+export interface options_reports {
     jasper?: string;
     jrxml?: string;
     conn?: string;
     data?: any;
 }
-interface options_drivers {
+export interface options_drivers {
     path: string;
     class: string;
     type: string;
 }
-interface options_conns {
+export interface options_conns {
     host?: string;
     port?: string;
     dbname?: string;
@@ -18,7 +18,7 @@ interface options_conns {
     jdbc?: string;
     driver: string;
 }
-interface options {
+export interface options {
     path?: string;
     tmpPath?: string;
     reports: {
@@ -34,6 +34,13 @@ interface options {
     java: string[];
     javaInstance?: any;
     debug?: 'ALL' | 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL' | 'OFF' | 'off';
+}
+export interface options_report {
+    report: string | options_reports | Function;
+    data?: any;
+    override?: any;
+    dataset?: any;
+    query?: string;
 }
 declare class JasperTS {
     private options;
@@ -60,11 +67,17 @@ declare class JasperTS {
     ready(f?: () => void): void;
     add(name: any, def: any): void;
     parseBigDecimal(value: number | string | null | undefined): any;
-    pdf(report: {
-        report: any;
-        data: any;
-    }): Promise<any>;
-    export(report: any, type: string): Promise<any>;
+    docx(report: options_report): Promise<any>;
+    xlsx(report: options_report): Promise<any>;
+    pptx(report: options_report): Promise<any>;
+    pdf(report: options_report): Promise<any>;
+    html(report: options_report): Promise<any>;
+    xml(report: options_report, embeddingImages?: boolean): Promise<any>;
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages?: boolean): Promise<any>;
+    compileJRXMLInDirSync(params: {
+        dir: string;
+        dstFolder?: string | undefined;
+    }): void;
     compileAllSync(dstFolder?: string | undefined): void;
     compileSync(jrxmlFile: string, dstFolder?: string | undefined): any;
     static compileAllSync(params: {

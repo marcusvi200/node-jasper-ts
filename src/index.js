@@ -58,7 +58,7 @@ class JasperTS {
             java = require('java');
         }
         if (!this.options.path) {
-            this.options.path = path.join(path.dirname(module.filename), '../', 'jar');
+            this.options.path = path.join(__dirname, './jar');
         }
         else {
             this.options.path = path.resolve(process.cwd(), this.options.path);
@@ -172,16 +172,33 @@ class JasperTS {
         let vBD = java.newInstanceSync('java.math.BigDecimal', value.toString());
         return vBD;
     }
+    docx(report) {
+        return this.export(report, 'docx');
+    }
+    xlsx(report) {
+        return this.export(report, 'xlsx');
+    }
+    pptx(report) {
+        return this.export(report, 'pptx');
+    }
     pdf(report) {
         return this.export(report, 'pdf');
     }
-    export(report, type) {
+    html(report) {
+        return this.export(report, 'html');
+    }
+    xml(report, embeddingImages = true) {
+        return this.export(report, 'xml', embeddingImages);
+    }
+    export(report, type, embeddingImages = false) {
         return new Promise((resolve, reject) => {
+            if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1)
+                reject('Invalid type');
             try {
                 var self = this;
                 if (!type)
                     return;
-                type = type.charAt(0).toUpperCase() + type.toLowerCase().slice(1);
+                var _type = type.charAt(0).toUpperCase() + type.toLowerCase().slice(1);
                 var processReport = function (report) {
                     if (typeof report == 'string') {
                         return [extend({}, self.reports[report])];
@@ -293,8 +310,34 @@ class JasperTS {
                             master.addPageSync(p.getPagesSync().getSync(j));
                         }
                     });
-                    var tempName = temp.path({ suffix: '.pdf' });
-                    self.jem['exportReportTo' + type + 'FileSync'](master, tempName);
+                    var tempName = temp.path({ suffix: `.${_type.toLowerCase()}` });
+                    if (type === 'docx') {
+                        let docx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRDocxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+                        docx.setParameterSync(parameters.JASPER_PRINT, master);
+                        docx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        docx.exportReportSync();
+                    }
+                    else if (type === "xlsx") {
+                        let xlsx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+                        xlsx.setParameterSync(parameters.JASPER_PRINT, master);
+                        xlsx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        xlsx.exportReportSync();
+                    }
+                    else if (type === "pptx") {
+                        let pptx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRPptxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+                        pptx.setParameterSync(parameters.JASPER_PRINT, master);
+                        pptx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        pptx.exportReportSync();
+                    }
+                    else if (type === 'xml') {
+                        self.jem['exportReportTo' + _type + 'FileSync'](master, tempName, embeddingImages);
+                    }
+                    else {
+                        self.jem['exportReportTo' + _type + 'FileSync'](master, tempName);
+                    }
                     var exp = fs.readFileSync(tempName);
                     fs.unlinkSync(tempName);
                     resolve(exp);
@@ -303,6 +346,13 @@ class JasperTS {
             }
             catch (error) {
                 reject(error);
+            }
+        });
+    }
+    compileJRXMLInDirSync(params) {
+        fs.readdirSync(path.resolve(process.cwd(), params.dir)).forEach((file) => {
+            if (path.extname(file) == '.jrxml') {
+                this.compileSync(path.resolve(process.cwd(), params.dir, file), params.dstFolder);
             }
         });
     }
