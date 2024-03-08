@@ -7,10 +7,6 @@ var jasperReport = JasperConfig({
         'main': {
             jrxml: 'jrxml/test/rel_teste.jrxml',
             conn: 'default',
-        },
-        'sub': {
-            jrxml: 'jrxml/test/rel_teste_subreport1.jrxml',
-            conn: 'default',
         }
     },
     drivers: {
@@ -33,15 +29,15 @@ var jasperReport = JasperConfig({
     java: ["-Djava.awt.headless=true"]
 })
 
-jasperReport.compileAllSync("jrxml/test");
+jasperReport.compileJRXMLInDirSync({ dir: "jrxml/test" });
 
-jasperReport.pdf({
+jasperReport.docx({
     report: 'main',
     data: {
         id: 1
     },
-}).then((result: any) => {
-    fs.writeFileSync("exported/test.pdf", Buffer.from(result, 'binary'));
+}).then((result) => {
+    fs.writeFileSync("exported/test.docx", Buffer.from(result, 'binary'));
     console.log("Arquivo gerado com sucesso!");
     process.exit(0);
 }).catch((err: any) => {

@@ -43,7 +43,7 @@ var jasperReport = JasperConfig({
         'default': {
             user: 'USERDB',
             pass: 'PASSWORD',
-            jdbc: 'jdbc:oracle:thin:@266.266.262.260:12821:ORCL',
+            jdbc: 'jdbc:oracle:thin:@266.266.262.260:82821:ORCL',
             driver: 'oracle'
         }
     },
@@ -52,15 +52,15 @@ var jasperReport = JasperConfig({
     java: ["-Djava.awt.headless=true"]
 })
 
-jasperReport.compileAllSync("jrxml/test");
+jasperReport.compileJRXMLInDirSync({ dir: "jrxml/test" });
 
-jasperReport.pdf({
+jasperReport.docx({
     report: 'main',
     data: {
         id: 1
     },
-}).then((result: any) => {
-    fs.writeFileSync("exported/test.pdf", Buffer.from(result, 'binary'));
+}).then((result) => {
+    fs.writeFileSync("exported/test.docx", Buffer.from(result, 'binary'));
     console.log("Arquivo gerado com sucesso!");
     process.exit(0);
 }).catch((err: any) => {
@@ -114,6 +114,26 @@ options: {
 
 	Instance of *node-java* that we are currently running.
 
+* **compileJRXMLInDirSync({ dir, dstFolder? })**
+
+	Compiles all jrxml files into a jasper file within the specified folder, saving to the temp folder.
+
+* **compileAllSync(dstFolder?)**
+
+	Compiles all jrxml of the configuration into a jasper file inside the temp folder.
+
+* **compileSync(jrxmlFile, dstFolder?)**
+
+	Compiles a jrxml file into a jasper file, saving in the temp folder.
+    
+* **getParametersSync({ jrxml?, jasper? })**
+
+	Gets the file parameters, either jasper or jrxml.
+
+* **getAllParametersSync({ path, grouped})**
+
+	Gets the file parameters, either jasper or jrxml.
+
 * **add(name, report)**
 
   Add a new _report_ definition identified by _name_.
@@ -123,6 +143,26 @@ options: {
 * **pdf(report)**
 
   Alias for _export(report, 'pdf')_
+
+* **html(report)**
+
+  Alias for _export(report, 'html')_
+
+* **xml(report)**
+
+  Alias for _export(report, 'xml', embeddingImages boolean)_
+
+* **docx(report)**
+
+  Alias for _export(report, 'docx')_
+
+* **xlsx(report)**
+
+  Alias for _export(report, 'xlsx')_
+
+* **pptx(report)**
+
+  Alias for _export(report, 'pptx')_
 
 * **export(report, format)**
 
@@ -152,16 +192,13 @@ options: {
 ## Example
 
 ```
-var express = require('express'),
-	app = express(),
-	jasper = JasperConfig({
+import * as express from 'express';
+var app = express();
+
+    var jasper = JasperConfig({
                 reports: {
                     'main': {
                         jrxml: 'jrxml/test/rel_teste.jrxml',
-                        conn: 'default',
-                    },
-                    'sub': {
-                        jrxml: 'jrxml/test/rel_teste_subreport1.jrxml',
                         conn: 'default',
                     }
                 },
@@ -185,7 +222,7 @@ var express = require('express'),
                 java: ["-Djava.awt.headless=true"]
     });
 
-    jasper.compileAllSync("jrxml/test");
+    jasper.compileJRXMLInDirSync("jrxml/test");
 
 	app.get('/pdf', function(req, res, next) {
 		//beware of the datatype of your parameter.

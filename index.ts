@@ -19,8 +19,6 @@ function walk(dir: string, done: (err: any, results?: string[]) => void) {
         err = error;
     }
 
-    // console.log('list', list);
-
     if (err) return done(err);
     var pending = list.length;
     if (!pending) return done(null, results);
@@ -45,20 +43,20 @@ function walk(dir: string, done: (err: any, results?: string[]) => void) {
     });
 };
 
-interface options_reports {
+export interface options_reports {
     jasper?: string, //Path to jasper file,
     jrxml?: string, //Path to jrxml file,
     conn?: string, //Connection name, definition object or false (if false defaultConn won't apply)
     data?: any, //Data to be applied to the report
 }
 
-interface options_drivers {
+export interface options_drivers {
     path: string, //Path to jdbc driver jar
     class: string, //Class name of the
     type: string //Type of database (mysql, postgres)
 }
 
-interface options_conns {
+export interface options_conns {
     host?: string, //Database hostname or IP
     port?: string, //Database Port
     dbname?: string, //Database Name
@@ -68,7 +66,7 @@ interface options_conns {
     driver: string//name or definition of the driver for this conn
 }
 
-interface options {
+export interface options {
     path?: string, //Path to jasperreports-x.x.x-project directory
     tmpPath?: string, // Path to a folder for storing compiled report files
     reports: {
@@ -87,6 +85,14 @@ interface options {
     java: string[]//Array of java options, for example ["-Djava.awt.headless=true"]
     javaInstance?: any, //Instance of java
     debug?: 'ALL' | 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL' | 'OFF' | 'off' //Debug level
+}
+
+export interface options_report {
+    report: string | options_reports | Function, //Report name, definition object or function that returns a report name or definition
+    data?: any, //Data to be applied to the report
+    override?: any, //Override report definition
+    dataset?: any, //Dataset to be used in the report
+    query?: string //Query to be used in the report
 }
 
 class JasperTS {
@@ -123,7 +129,7 @@ class JasperTS {
         }
 
         if (!this.options.path) {
-            this.options.path = path.join(path.dirname(module.filename), '../', 'jar');
+            this.options.path = path.join(__dirname, './jar');
         } else {
             this.options.path = path.resolve(process.cwd(), this.options.path);
         }
@@ -267,18 +273,40 @@ class JasperTS {
         return vBD;
     }
 
-    pdf(report: { report: any, data: any }) {
+    docx(report: options_report): Promise<any> {
+        return this.export(report, 'docx');
+    }
+
+    xlsx(report: options_report): Promise<any> {
+        return this.export(report, 'xlsx');
+    }
+
+    pptx(report: options_report): Promise<any> {
+        return this.export(report, 'pptx');
+    }
+
+    pdf(report: options_report): Promise<any> {
         return this.export(report, 'pdf');
     }
 
-    export(report: any, type: string) {
+    html(report: options_report): Promise<any> {
+        return this.export(report, 'html');
+    }
+
+    xml(report: options_report, embeddingImages: boolean = true): Promise<any> {
+        return this.export(report, 'xml', embeddingImages);
+    }
+
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<any> {
         return new Promise((resolve: (result: any) => void, reject: (reason?: any) => void) => {
+            if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1) reject('Invalid type');
+
             try {
                 var self = this;
 
                 if (!type) return;
 
-                type = type.charAt(0).toUpperCase() + type.toLowerCase().slice(1);
+                var _type = type.charAt(0).toUpperCase() + type.toLowerCase().slice(1);
 
                 var processReport = function (report: any) {
                     if (typeof report == 'string') {
@@ -399,8 +427,35 @@ class JasperTS {
                             master.addPageSync(p.getPagesSync().getSync(j));
                         }
                     });
-                    var tempName = temp.path({ suffix: '.pdf' });
-                    self.jem['exportReportTo' + type + 'FileSync'](master, tempName);
+                    var tempName = temp.path({ suffix: `.${_type.toLowerCase()}` });
+
+                    if (type === 'docx') {
+                        let docx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRDocxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+
+                        docx.setParameterSync(parameters.JASPER_PRINT, master);
+                        docx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        docx.exportReportSync();
+                    } else if (type === "xlsx") {
+                        let xlsx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+
+                        xlsx.setParameterSync(parameters.JASPER_PRINT, master);
+                        xlsx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        xlsx.exportReportSync();
+                    } else if (type === "pptx") {
+                        let pptx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRPptxExporter");
+                        let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
+
+                        pptx.setParameterSync(parameters.JASPER_PRINT, master);
+                        pptx.setParameterSync(parameters.OUTPUT_FILE_NAME, tempName);
+                        pptx.exportReportSync();
+                    } else if (type === 'xml') {
+                        self.jem['exportReportTo' + _type + 'FileSync'](master, tempName, embeddingImages);
+                    } else {
+                        self.jem['exportReportTo' + _type + 'FileSync'](master, tempName);
+                    }
+
                     var exp = fs.readFileSync(tempName);
                     fs.unlinkSync(tempName);
                     resolve(exp);
@@ -408,6 +463,14 @@ class JasperTS {
                 resolve('');
             } catch (error) {
                 reject(error);
+            }
+        });
+    }
+
+    compileJRXMLInDirSync(params: { dir: string, dstFolder?: string | undefined }) {
+        fs.readdirSync(path.resolve(process.cwd(), params.dir)).forEach((file: string) => {
+            if (path.extname(file) == '.jrxml') {
+                this.compileSync(path.resolve(process.cwd(), params.dir, file), params.dstFolder);
             }
         });
     }
