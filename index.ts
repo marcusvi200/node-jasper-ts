@@ -129,6 +129,8 @@ class JasperTS {
         }
 
         if (!this.options.path) {
+            path.dirname(module.filename).split(path.sep).pop() === 'src' ? 
+            this.options.path = path.join(path.dirname(module.filename), '../jar') :
             this.options.path = path.join(__dirname, './jar');
         } else {
             this.options.path = path.resolve(process.cwd(), this.options.path);

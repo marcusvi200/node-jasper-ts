@@ -58,7 +58,9 @@ class JasperTS {
             java = require('java');
         }
         if (!this.options.path) {
-            this.options.path = path.join(__dirname, './jar');
+            path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+                this.options.path = path.join(path.dirname(module.filename), '../jar') :
+                this.options.path = path.join(__dirname, './jar');
         }
         else {
             this.options.path = path.resolve(process.cwd(), this.options.path);
