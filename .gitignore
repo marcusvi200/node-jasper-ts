@@ -5,3 +5,5 @@ exported
 
 /index.js
 /test.js
+
+jrxml/*/*.jasper
