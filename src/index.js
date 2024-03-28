@@ -389,7 +389,20 @@ class JasperTS {
         return filesCompiled;
     }
     static compileSync(params) {
-        var self = this;
+        java = require('java');
+        let pathJar = null;
+        path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+            pathJar = path.join(path.dirname(module.filename), '../jar') :
+            pathJar = path.join(__dirname, './jar');
+        walk(pathJar, function (err, results) {
+            if (err)
+                throw err;
+            results.forEach(function (file) {
+                if (path.extname(file) == '.jar') {
+                    java.classpath.push(file);
+                }
+            });
+        });
         var name = path.basename(params.jrxmlFile, '.jrxml');
         var file = path.join(params.dstFolder || '/tmp', name + '.jasper');
         java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(params.pathFile, path.join(params.pathFile, params.jrxmlFile)), file);
@@ -414,6 +427,20 @@ class JasperTS {
         return result;
     }
     static getParametersSync(options) {
+        java = require('java');
+        let pathJar = null;
+        path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+            pathJar = path.join(path.dirname(module.filename), '../jar') :
+            pathJar = path.join(__dirname, './jar');
+        walk(pathJar, function (err, results) {
+            if (err)
+                throw err;
+            results.forEach(function (file) {
+                if (path.extname(file) == '.jar') {
+                    java.classpath.push(file);
+                }
+            });
+        });
         var jasperReport = null;
         if (options.jasper) {
             jasperReport = java.callStaticMethodSync("net.sf.jasperreports.engine.util.JRLoader", "loadObjectFromFile", options.jasper);

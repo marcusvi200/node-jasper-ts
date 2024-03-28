@@ -516,7 +516,24 @@ class JasperTS {
     }
 
     static compileSync(params: { pathFile: string, jrxmlFile: string, dstFolder: string | undefined }) {
-        var self = this;
+        java = require('java');
+
+        let pathJar: string | null = null;
+
+        path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+            pathJar = path.join(path.dirname(module.filename), '../jar') :
+            pathJar = path.join(__dirname, './jar');
+
+
+        walk(pathJar, function (err, results) {
+            if (err) throw err;
+            results.forEach(function (file) {
+                if (path.extname(file) == '.jar') {
+                    java.classpath.push(file);
+                }
+            });
+        });
+
         var name = path.basename(params.jrxmlFile, '.jrxml');
         var file = path.join(params.dstFolder || '/tmp', name + '.jasper');
         java.callStaticMethodSync(
@@ -555,6 +572,24 @@ class JasperTS {
     }
 
     static getParametersSync(options: { jrxml?: string, jasper?: string }) {
+        java = require('java');
+
+        let pathJar: string | null = null;
+
+        path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+            pathJar = path.join(path.dirname(module.filename), '../jar') :
+            pathJar = path.join(__dirname, './jar');
+
+
+        walk(pathJar, function (err, results) {
+            if (err) throw err;
+            results.forEach(function (file) {
+                if (path.extname(file) == '.jar') {
+                    java.classpath.push(file);
+                }
+            });
+        });
+
         var jasperReport = null;
         if (options.jasper) {
             jasperReport = java.callStaticMethodSync(
