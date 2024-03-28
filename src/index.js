@@ -216,6 +216,9 @@ class JasperTS {
                         return processReport(report());
                     }
                     else if (typeof report == 'object') {
+                        if (!report.data && !report.override) {
+                            report.data = {};
+                        }
                         if (report.data || report.override) {
                             var reps = processReport(report.report);
                             return reps.map(function (i) {

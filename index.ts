@@ -129,9 +129,9 @@ class JasperTS {
         }
 
         if (!this.options.path) {
-            path.dirname(module.filename).split(path.sep).pop() === 'src' ? 
-            this.options.path = path.join(path.dirname(module.filename), '../jar') :
-            this.options.path = path.join(__dirname, './jar');
+            path.dirname(module.filename).split(path.sep).pop() === 'src' ?
+                this.options.path = path.join(path.dirname(module.filename), '../jar') :
+                this.options.path = path.join(__dirname, './jar');
         } else {
             this.options.path = path.resolve(process.cwd(), this.options.path);
         }
@@ -322,6 +322,10 @@ class JasperTS {
                     } else if (typeof report == 'function') {
                         return processReport(report());
                     } else if (typeof report == 'object') {
+                        if (!report.data && !report.override) {
+                            report.data = {};
+                        }
+
                         if (report.data || report.override) {
                             var reps = processReport(report.report);
                             return reps.map(function (i: any) {
