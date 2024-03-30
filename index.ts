@@ -43,6 +43,17 @@ function walk(dir: string, done: (err: any, results?: string[]) => void) {
     });
 };
 
+export interface ParametersJASPER {
+    [key: string]: {
+        type: string,
+        description: string | null,
+        isForPrompting: boolean,
+        properties: {
+            [key: string]: string
+        }
+    }
+}
+
 export interface options_reports {
     jasper?: string, //Path to jasper file,
     jrxml?: string, //Path to jrxml file,
@@ -544,7 +555,7 @@ class JasperTS {
         return file;
     }
 
-    getParametersSync(options: { jrxml?: string, jasper?: string }) {
+    getParametersSync(options: { jrxml?: string, jasper?: string }): ParametersJASPER {
         var jasperReport = null;
         if (options.jasper) {
             jasperReport = java.callStaticMethodSync(
@@ -564,14 +575,23 @@ class JasperTS {
         var result = {};
         for (var i = 0; i < parameters.length; i++) {
             var parameter = parameters[i];
+
+            let description = parameter.getDescriptionSync();
+            let propertieNames = parameter.getPropertiesMapSync().getPropertyNamesSync();
+
+            let properties = {};
+            for (var j = 0; j < propertieNames.length; j++) {
+                properties[propertieNames[j]] = parameter.getPropertiesMapSync().getPropertySync(propertieNames[j]);
+            }
+
             if (parameter.getValueClassSync().toStringSync().indexOf('class') > -1) {
-                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync() };
+                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), description, isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync(), properties };
             }
         }
         return result;
     }
 
-    static getParametersSync(options: { jrxml?: string, jasper?: string }) {
+    static getParametersSync(options: { jrxml?: string, jasper?: string }): ParametersJASPER {
         java = require('java');
 
         let pathJar: string | null = null;
@@ -610,13 +630,21 @@ class JasperTS {
         for (var i = 0; i < parameters.length; i++) {
             var parameter = parameters[i];
             if (parameter.getValueClassSync().toStringSync().indexOf('class') > -1) {
-                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync() };
+                let description = parameter.getDescriptionSync();
+                let propertieNames = parameter.getPropertiesMapSync().getPropertyNamesSync();
+
+                let properties = {};
+                for (var j = 0; j < propertieNames.length; j++) {
+                    properties[propertieNames[j]] = parameter.getPropertiesMapSync().getPropertySync(propertieNames[j]);
+                }
+
+                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), description, isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync(), properties };
             }
         }
         return result;
     }
 
-    static getParametersAllSync(options: { path: string, grouped?: boolean }) {
+    static getParametersAllSync(options: { path: string, grouped?: boolean }): ParametersJASPER {
         var files = fs.readdirSync(options.path);
         var result = {};
         files.forEach(function (file: string) {

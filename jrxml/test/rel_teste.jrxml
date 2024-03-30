@@ -3,7 +3,10 @@
 	<property name="ireport.zoom" value="1.771561000000001"/>
 	<property name="ireport.x" value="0"/>
 	<property name="ireport.y" value="0"/>
-	<parameter name="P_OK" class="java.lang.Boolean"/>
+	<parameter name="P_OK" class="java.lang.Boolean">
+		<property name="nameProp" value="1234"/>
+		<parameterDescription><![CDATA[Is OK?]]></parameterDescription>
+	</parameter>
 	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
 		<defaultValueExpression><![CDATA[".\\"]]></defaultValueExpression>
 	</parameter>

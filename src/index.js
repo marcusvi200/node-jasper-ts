@@ -420,8 +420,14 @@ class JasperTS {
         var result = {};
         for (var i = 0; i < parameters.length; i++) {
             var parameter = parameters[i];
+            let description = parameter.getDescriptionSync();
+            let propertieNames = parameter.getPropertiesMapSync().getPropertyNamesSync();
+            let properties = {};
+            for (var j = 0; j < propertieNames.length; j++) {
+                properties[propertieNames[j]] = parameter.getPropertiesMapSync().getPropertySync(propertieNames[j]);
+            }
             if (parameter.getValueClassSync().toStringSync().indexOf('class') > -1) {
-                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync() };
+                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), description, isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync(), properties };
             }
         }
         return result;
@@ -453,7 +459,13 @@ class JasperTS {
         for (var i = 0; i < parameters.length; i++) {
             var parameter = parameters[i];
             if (parameter.getValueClassSync().toStringSync().indexOf('class') > -1) {
-                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync() };
+                let description = parameter.getDescriptionSync();
+                let propertieNames = parameter.getPropertiesMapSync().getPropertyNamesSync();
+                let properties = {};
+                for (var j = 0; j < propertieNames.length; j++) {
+                    properties[propertieNames[j]] = parameter.getPropertiesMapSync().getPropertySync(propertieNames[j]);
+                }
+                result[parameter.getNameSync()] = { type: parameter.getValueClassSync().toStringSync().replace('class', '').trim(), description, isForPrompting: parameter.isSystemDefinedSync() ? false : parameter.isForPromptingSync(), properties };
             }
         }
         return result;

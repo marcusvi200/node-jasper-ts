@@ -1,3 +1,13 @@
+export interface ParametersJASPER {
+    [key: string]: {
+        type: string;
+        description: string | null;
+        isForPrompting: boolean;
+        properties: {
+            [key: string]: string;
+        };
+    };
+}
 export interface options_reports {
     jasper?: string;
     jrxml?: string;
@@ -92,15 +102,15 @@ declare class JasperTS {
     getParametersSync(options: {
         jrxml?: string;
         jasper?: string;
-    }): {};
+    }): ParametersJASPER;
     static getParametersSync(options: {
         jrxml?: string;
         jasper?: string;
-    }): {};
+    }): ParametersJASPER;
     static getParametersAllSync(options: {
         path: string;
         grouped?: boolean;
-    }): {};
+    }): ParametersJASPER;
     toJsonDataSource(dataset: any, query: string): any;
 }
 declare const JasperConfig: (options: options) => JasperTS;
