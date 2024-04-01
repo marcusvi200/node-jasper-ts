@@ -3,6 +3,7 @@ export interface ParametersJASPER {
     [key: string]: {
         type: string;
         description: string | null;
+        defaultValue: any;
         isForPrompting: boolean;
         properties: {
             [key: string]: string;
