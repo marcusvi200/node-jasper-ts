@@ -1,5 +1,7 @@
 export declare enum TypeParam {
     'String' = "String",
+    'BigDecimal' = "BigDecimal",
+    'Double' = "Double",
     'Float' = "Float",
     'Integer' = "Integer",
     'Boolean' = "Boolean",
@@ -9,6 +11,9 @@ export declare enum TypeParam {
     'Object' = "Object"
 }
 declare class JasperUtils {
+    static convertNumberToBigDecimal(value: number): any;
+    static convertNumberToDouble(value: number): any;
+    static convertNumberToFloat(value: number): any;
     static convertDateToTime(value: Date): any;
     static convertDateToTimestamp(value: Date): any;
     static formatValue(value: any, typeParam: TypeParam, whenNull?: any): any;

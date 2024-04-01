@@ -3,6 +3,8 @@ const java = require('java');
 
 export enum TypeParam {
     'String' = 'String',
+    'BigDecimal' = 'BigDecimal',
+    'Double' = 'Double',
     'Float' = 'Float',
     'Integer' = 'Integer',
     'Boolean' = 'Boolean',
@@ -13,6 +15,18 @@ export enum TypeParam {
 }
 
 class JasperUtils {
+
+    static convertNumberToBigDecimal(value: number) {
+        return java.callStaticMethodSync("java.math.BigDecimal", "valueOf", value);
+    }
+
+    static convertNumberToDouble(value: number) {
+        return java.callStaticMethodSync("java.lang.Double", "valueOf", value);
+    }
+
+    static convertNumberToFloat(value: number) {
+        return java.callStaticMethodSync("java.lang.Float", "valueOf", value);
+    }
 
     static convertDateToTime(value: Date) {
         let time = java.callStaticMethodSync("java.time.LocalTime", "parse", moment(value).format("HH:mm:ss"));
@@ -37,7 +51,19 @@ class JasperUtils {
                 return value.toString();
             case 'Float':
                 try {
-                    return parseFloat(value);
+                    return JasperUtils.convertNumberToFloat(parseFloat(value));
+                } catch (error) {
+                    return whenNull;
+                }
+            case 'BigDecimal':
+                try {
+                    return JasperUtils.convertNumberToBigDecimal(value);
+                } catch (error) {
+                    return whenNull;
+                }
+            case 'Double':
+                try {
+                    return JasperUtils.convertNumberToDouble(value);
                 } catch (error) {
                     return whenNull;
                 }
@@ -73,11 +99,11 @@ class JasperUtils {
             case 'java.lang.String':
                 return TypeParam.String;
             case 'java.lang.Double':
-                return TypeParam.Float;
+                return TypeParam.Double;
             case 'java.lang.Float':
                 return TypeParam.Float;
             case 'java.math.BigDecimal':
-                return TypeParam.Float;
+                return TypeParam.BigDecimal;
             case 'java.lang.Number':
                 return TypeParam.Float;
             case 'java.lang.Integer':
