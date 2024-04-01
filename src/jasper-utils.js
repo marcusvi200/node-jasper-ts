@@ -32,11 +32,26 @@ class JasperUtils {
             case 'String':
                 return value.toString();
             case 'Float':
-                return parseFloat(value);
+                try {
+                    return parseFloat(value);
+                }
+                catch (error) {
+                    return whenNull;
+                }
             case 'Integer':
-                return parseInt(value);
+                try {
+                    return parseInt(value);
+                }
+                catch (error) {
+                    return whenNull;
+                }
             case 'Boolean':
-                return Boolean(value);
+                try {
+                    return Boolean(value);
+                }
+                catch (error) {
+                    return whenNull;
+                }
             case 'Date':
                 return JasperUtils.convertDateToTimestamp(value);
             case 'DateTime':
