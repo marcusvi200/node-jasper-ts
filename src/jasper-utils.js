@@ -40,7 +40,11 @@ class JasperUtils {
                 }
             case 'Integer':
                 try {
-                    return parseInt(value);
+                    let num = parseInt(value);
+                    if (isNaN(num)) {
+                        return whenNull;
+                    }
+                    return num;
                 }
                 catch (error) {
                     return whenNull;
