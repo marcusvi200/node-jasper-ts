@@ -1,3 +1,5 @@
+import { JasperUtils } from "jasper_utils";
+
 var java = null,
     fs = require('fs'),
     path = require('path'),
@@ -682,4 +684,4 @@ const JasperParametersFolder = JasperTS.getParametersAllSync;
 const JasperCompile = JasperTS.compileSync
 const JasperCompileFolder = JasperTS.compileAllSync
 
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder };
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder, JasperUtils };
