@@ -1,4 +1,4 @@
-import { JasperUtils } from "jasper_utils";
+import * as JasperUtils from "./jasper-utils";
 
 var java = null,
     fs = require('fs'),

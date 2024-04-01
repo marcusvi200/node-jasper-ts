@@ -1,21 +1,33 @@
 import * as moment from 'moment';
 const java = require('java');
 
-export const JasperUtils = {
-    convertDateToTime: function (value: Date) {
+export enum TypeParam {
+    'String' = 'String',
+    'Float' = 'Float',
+    'Integer' = 'Integer',
+    'Boolean' = 'Boolean',
+    'Date' = 'Date',
+    'DateTime' = 'DateTime',
+    'Time' = 'Time',
+    'Object' = 'Object'
+}
+
+class JasperUtils {
+
+    static convertDateToTime(value: Date) {
         let time = java.callStaticMethodSync("java.time.LocalTime", "parse", moment(value).format("HH:mm:ss"));
 
         return java.callStaticMethodSync("java.sql.Time", "valueOf", time);
-    },
+    }
 
-    convertDateToTimestamp: function (value: Date) {
+    static convertDateToTimestamp(value: Date) {
         let dtSimpleDateFormat = java.newInstanceSync("java.text.SimpleDateFormat", "yyyy-MM-dd HH:mm:ss");
         let data = dtSimpleDateFormat.parseSync(moment(value).format("YYYY-MM-DD HH:mm:ss"));
 
         return java.newInstanceSync("java.sql.Timestamp", data.getTimeSync());
-    },
+    }
 
-    formatValue: function (value: any, typeParam: string, whenNull: any = undefined) {
+    static formatValue(value: any, typeParam: TypeParam, whenNull: any = undefined) {
         if (value === null || value === undefined) {
             return whenNull;
         }
@@ -38,38 +50,50 @@ export const JasperUtils = {
             default:
                 return value;
         }
-    },
+    }
 
-    typeParam: function (type: string): 'String' | 'Float' | 'Integer' | 'Boolean' | 'Date' | 'DateTime' | 'Time' | 'Object' {
+    static typeParam(type: string): TypeParam {
         switch (type) {
             case 'java.lang.String':
-                return "String";
+                return TypeParam.String;
             case 'java.lang.Double':
-                return "Float";
+                return TypeParam.Float;
             case 'java.lang.Float':
-                return "Float";
+                return TypeParam.Float;
             case 'java.math.BigDecimal':
-                return "Float";
+                return TypeParam.Float;
             case 'java.lang.Number':
-                return "Float";
+                return TypeParam.Float;
             case 'java.lang.Integer':
-                return "Integer";
+                return TypeParam.Integer;
             case 'java.lang.Long':
-                return "Integer";
+                return TypeParam.Integer;
             case 'java.lang.Short':
-                return "Integer";
+                return TypeParam.Integer;
             case 'java.lang.Byte':
-                return "Integer";
+                return TypeParam.Integer;
             case 'java.lang.Boolean':
-                return "Boolean";
+                return TypeParam.Boolean;
             case 'java.util.Date':
-                return "Date";
+                return TypeParam.Date;
             case 'java.sql.Timestamp':
-                return "DateTime";
+                return TypeParam.DateTime;
             case 'java.sql.Time':
-                return "Time";
+                return TypeParam.Time;
             default:
-                return "Object";
+                return TypeParam.Object;
         }
     }
+}
+
+const convertDateToTime = JasperUtils.convertDateToTime;
+const convertDateToTimestamp = JasperUtils.convertDateToTimestamp;
+const formatValue = JasperUtils.formatValue;
+const typeParam = JasperUtils.typeParam;
+
+export {
+    convertDateToTime,
+    convertDateToTimestamp,
+    formatValue,
+    typeParam
 }
