@@ -1,3 +1,4 @@
+import { JasperUtils } from "jasper_utils";
 export interface ParametersJASPER {
     [key: string]: {
         type: string;
@@ -118,4 +119,4 @@ declare const JasperParameters: typeof JasperTS.getParametersSync;
 declare const JasperParametersFolder: typeof JasperTS.getParametersAllSync;
 declare const JasperCompile: typeof JasperTS.compileSync;
 declare const JasperCompileFolder: typeof JasperTS.compileAllSync;
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder };
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder, JasperUtils };
