@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = void 0;
-const jasper_utils_1 = require("jasper_utils");
-Object.defineProperty(exports, "JasperUtils", { enumerable: true, get: function () { return jasper_utils_1.JasperUtils; } });
+const JasperUtils = require("./jasper-utils");
+exports.JasperUtils = JasperUtils;
 var java = null, fs = require('fs'), path = require('path'), extend = require('extend'), util = require('util'), temp = require('temp'), async = require('async');
 var defaults = { reports: {}, drivers: {}, conns: {}, tmpPath: '/tmp' };
 function walk(dir, done) {

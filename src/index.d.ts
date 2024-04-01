@@ -1,4 +1,4 @@
-import { JasperUtils } from "jasper_utils";
+import * as JasperUtils from "./jasper-utils";
 export interface ParametersJASPER {
     [key: string]: {
         type: string;
