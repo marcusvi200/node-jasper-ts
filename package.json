@@ -1,6 +1,6 @@
 {
   "name": "node-jasper-ts",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "JasperReports within Node.js",
   "main": "src/index.js",
   "types": "src/index.d.ts",
