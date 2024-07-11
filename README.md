@@ -6,6 +6,14 @@ JasperReports within Node.js using typescript
 
 Adapting the package: node-jasper: [node-jasper](https://github.com/agmoyano/node-jasper)
 
+## News
+
+### 1.2.5
+Now you can load your own jars using string 'path'. (Suggestion from [Murilo Menegasso](https://github.com/murilomenegasso))
+
+** Attention!! **
+Inside the folder there must be the complete "lib" folder, which appears in the package and there must be a "dist" folder, which is the place where you must store the drivers you need, all in 'jar'. We strongly recommend using this format.
+
 ## Install
 
 Install via npm:

@@ -10,6 +10,7 @@ var jasperReport = (0, index_1.JasperConfig)({
             conn: 'default',
         }
     },
+    path: `/home/user/jasperreports/`,
     drivers: {
         'oracle': {
             path: 'jar/dist/ojdbc11g.jar',

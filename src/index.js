@@ -78,8 +78,8 @@ class JasperTS {
             }
         }
         var self = this;
-        self.parentPath = path.dirname(module.filename);
-        var jrPath = path.resolve(this.options.path || self.parentPath);
+        var jrPath = path.resolve(this.options.path || path.dirname(module.filename));
+        self.parentPath = jrPath;
         async.auto({
             jrJars: function (cb) {
                 if (fs.statSync(path.join(jrPath, 'lib')).isDirectory() && fs.statSync(path.join(jrPath, 'dist')).isDirectory()) {

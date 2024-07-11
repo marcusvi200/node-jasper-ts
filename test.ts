@@ -9,6 +9,8 @@ var jasperReport = JasperConfig({
             conn: 'default',
         }
     },
+    // Need to be absolute path and inside should have the folders "lib" and "dist" with all jars
+    path: `/home/user/jasperreports/`,
     drivers: {
         'oracle': {
             path: 'jar/dist/ojdbc11g.jar',
