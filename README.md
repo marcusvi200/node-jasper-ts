@@ -8,7 +8,7 @@ Adapting the package: node-jasper: [node-jasper](https://github.com/agmoyano/nod
 
 ## News
 
-### 1.2.5
+### 1.2.6
 Now you can load your own jars using string 'path'. (Suggestion from [Murilo Menegasso](https://github.com/murilomenegasso))
 
 ** Attention!! **
