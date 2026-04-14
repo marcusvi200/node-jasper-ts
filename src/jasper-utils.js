@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.typeParam = exports.formatValue = exports.convertDateToTimestamp = exports.convertDateToTime = exports.TypeParam = void 0;
-const moment = require("moment");
+const moment_1 = __importDefault(require("moment"));
 const java = require('java');
 var TypeParam;
 (function (TypeParam) {
@@ -27,12 +30,12 @@ class JasperUtils {
         return java.callStaticMethodSync("java.lang.Float", "valueOf", value);
     }
     static convertDateToTime(value) {
-        let time = java.callStaticMethodSync("java.time.LocalTime", "parse", moment(value).format("HH:mm:ss"));
+        let time = java.callStaticMethodSync("java.time.LocalTime", "parse", (0, moment_1.default)(value).format("HH:mm:ss"));
         return java.callStaticMethodSync("java.sql.Time", "valueOf", time);
     }
     static convertDateToTimestamp(value) {
         let dtSimpleDateFormat = java.newInstanceSync("java.text.SimpleDateFormat", "yyyy-MM-dd HH:mm:ss");
-        let data = dtSimpleDateFormat.parseSync(moment(value).format("YYYY-MM-DD HH:mm:ss"));
+        let data = dtSimpleDateFormat.parseSync((0, moment_1.default)(value).format("YYYY-MM-DD HH:mm:ss"));
         return java.newInstanceSync("java.sql.Timestamp", data.getTimeSync());
     }
     static formatValue(value, typeParam, whenNull = undefined) {

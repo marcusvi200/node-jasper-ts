@@ -1,4 +1,4 @@
-import * as moment from 'moment';
+import moment from 'moment';
 const java = require('java');
 
 export enum TypeParam {

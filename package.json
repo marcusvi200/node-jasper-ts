@@ -1,18 +1,20 @@
 {
   "name": "node-jasper-ts",
-  "version": "1.2.7",
+  "version": "2.0.0",
   "description": "JasperReports within Node.js",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx tsx test.ts"
   },
   "keywords": [
     "jrxml",
     "jasper",
     "JasperReports",
     "pdf",
+    "doc",
+    "xls",
     "ts"
   ],
   "author": "Marcus Vinicius Oliveira Silva",
@@ -31,21 +33,20 @@
   "license": "ISC",
   "private": false,
   "devDependencies": {
-    "@types/node": "^20.11.24",
+    "@types/node": "^20.19.39",
     "typescript": "^4.7.4"
   },
-  "dependencies": {
-    "async": "^0.9.2",
-    "dotenv": "^16.4.5",
-    "extend": "^1.3.0",
-    "fs": "^0.0.1-security",
-    "java": "^0.14.0",
-    "moment": "^2.30.1",
-    "path": "^0.12.7",
-    "temp": "^0.8.4"
+  "engines": {
+    "node": ">=22.0.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/marcusvi200/node-jasper-ts.git"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "extend": "^3.0.2",
+    "java": "^0.18.0",
+    "moment": "^2.30.1"
   }
 }

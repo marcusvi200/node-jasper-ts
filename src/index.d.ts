@@ -74,8 +74,9 @@ declare class JasperTS {
     private drivers;
     private conns;
     private reports;
+    private _isInitialized;
     constructor(options: options);
-    private initilizeOptions;
+    init(): Promise<void>;
     ready(f?: () => void): void;
     add(name: any, def: any): void;
     parseBigDecimal(value: number | string | null | undefined): any;
@@ -89,18 +90,18 @@ declare class JasperTS {
     compileJRXMLInDirSync(params: {
         dir: string;
         dstFolder?: string | undefined;
-    }): void;
+    }): Promise<void>;
     compileAllSync(dstFolder?: string | undefined): void;
-    compileSync(jrxmlFile: string, dstFolder?: string | undefined): any;
+    compileSync(jrxmlFile: string, dstFolder?: string | undefined): string;
     static compileAllSync(params: {
         path: string;
         dstFolder: string | undefined;
-    }): any[];
+    }): Promise<any[]>;
     static compileSync(params: {
         pathFile: string;
         jrxmlFile: string;
         dstFolder: string | undefined;
-    }): any;
+    }): Promise<string>;
     getParametersSync(options: {
         jrxml?: string;
         jasper?: string;
@@ -108,16 +109,16 @@ declare class JasperTS {
     static getParametersSync(options: {
         jrxml?: string;
         jasper?: string;
-    }): ParametersJASPER;
-    static getParametersAllSync(options: {
+    }): Promise<ParametersJASPER>;
+    static getParametersAll(options: {
         path: string;
         grouped?: boolean;
-    }): ParametersJASPER;
+    }): Promise<ParametersJASPER>;
     toJsonDataSource(dataset: any, query: string): any;
 }
 declare const JasperConfig: (options: options) => JasperTS;
 declare const JasperParameters: typeof JasperTS.getParametersSync;
-declare const JasperParametersFolder: typeof JasperTS.getParametersAllSync;
+declare const JasperParametersFolder: typeof JasperTS.getParametersAll;
 declare const JasperCompile: typeof JasperTS.compileSync;
 declare const JasperCompileFolder: typeof JasperTS.compileAllSync;
 export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder, JasperUtils };

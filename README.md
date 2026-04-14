@@ -8,6 +8,9 @@ Adapting the package: node-jasper: [node-jasper](https://github.com/agmoyano/nod
 
 ## News
 
+### 2.0.0
+Updated to Node 22
+
 ### 1.2.6
 Now you can load your own jars using string 'path'. (Suggestion from [Murilo Menegasso](https://github.com/murilomenegasso))
 
@@ -26,8 +29,9 @@ To use it inside your project just do:
 
 ```
 import { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder } from 'node-jasper-ts';
-import * as fs from 'fs';
-require('dotenv').config();
+import * as fs from 'node:fs/promises';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 var jasperReport = JasperConfig({
     reports: {
@@ -40,6 +44,7 @@ var jasperReport = JasperConfig({
             conn: 'default',
         }
     },
+    path: `${process.cwd()}/jar`,
     drivers: {
         'oracle': {
             path: 'jar/dist/ojdbc11g.jar',
@@ -60,21 +65,26 @@ var jasperReport = JasperConfig({
     java: ["-Djava.awt.headless=true"]
 })
 
-jasperReport.compileJRXMLInDirSync({ dir: "jrxml/test" });
+jasperReport.init().then(async ()=>{
+    await jasperReport.compileJRXMLInDirSync({ dir: "jrxml/test" });
 
-jasperReport.docx({
-    report: 'main',
-    data: {
-        id: 1
-    },
-}).then((result) => {
-    fs.writeFileSync("exported/test.docx", Buffer.from(result, 'binary'));
-    console.log("Arquivo gerado com sucesso!");
-    process.exit(0);
-}).catch((err: any) => {
-    console.log(err);
-    process.exit(1);
-})
+    jasperReport.docx({
+        report: 'main',
+        data: {
+            id: 1
+        },
+    }).then((result) => {
+        await fs.writeFileSync("exported/test.docx", Buffer.from(result, 'binary'));
+        console.log("Arquivo gerado com sucesso!");
+        process.exit(0);
+    }).catch((err: any) => {
+        console.log(err);
+        process.exit(1);
+    })
+}).catch((error) => {
+    console.error(error);
+});
+
 ```
 
 Where _options_ is an object with the following signature:
@@ -122,7 +132,7 @@ options: {
 
 	Instance of *node-java* that we are currently running.
 
-* **compileJRXMLInDirSync({ dir, dstFolder? })**
+* **async compileJRXMLInDirSync({ dir, dstFolder? })**
 
 	Compiles all jrxml files into a jasper file within the specified folder, saving to the temp folder.
 
@@ -138,7 +148,7 @@ options: {
 
 	Gets the file parameters, either jasper or jrxml.
 
-* **getAllParametersSync({ path, grouped})**
+* **async getParametersAll({ path, grouped})**
 
 	Gets the file parameters, either jasper or jrxml.
 
@@ -148,31 +158,31 @@ options: {
 
   In report definition one of _jasper_ or _jrxml_ must be present.
 
-* **pdf(report)**
+* **async pdf(report)**
 
   Alias for _export(report, 'pdf')_
 
-* **html(report)**
+* **async html(report)**
 
   Alias for _export(report, 'html')_
 
-* **xml(report)**
+* **async xml(report)**
 
   Alias for _export(report, 'xml', embeddingImages boolean)_
 
-* **docx(report)**
+* **async docx(report)**
 
   Alias for _export(report, 'docx')_
 
-* **xlsx(report)**
+* **async xlsx(report)**
 
   Alias for _export(report, 'xlsx')_
 
-* **pptx(report)**
+* **async pptx(report)**
 
   Alias for _export(report, 'pptx')_
 
-* **export(report, format)**
+* **async export(report, format)**
 
   Returns the compiled _report_ in the specified _format_.
 
@@ -225,32 +235,37 @@ var app = express();
                         driver: 'oracle'
                     }
                 },
+                path: `${process.cwd()}/jar`,
                 defaultConn: 'default',
                 tmpPath: 'jrxml/test',
                 java: ["-Djava.awt.headless=true"]
     });
 
-    jasper.compileJRXMLInDirSync("jrxml/test");
+    app.get('/pdf', async (req, res, next) => {
+        await jasper.init();
+        await jasper.compileJRXMLInDirSync("jrxml/test");
 
-	app.get('/pdf', function(req, res, next) {
-		//beware of the datatype of your parameter.
-		var report = {
-			report: 'main',
-			data: {
-				id: parseInt(req.query.id, 10)
-				secundaryDataset: jasper.toJsonDataSource({
-					data: ...
-				},'data')
-			}
-			dataset: //main dataset
-		};
-		var pdf = jasper.pdf(report);
-		res.set({
-			'Content-type': 'application/pdf',
-			'Content-Length': pdf.length
-		});
-		res.send(pdf);
-	});
+        //beware of the datatype of your parameter.
+        var report = {
+            report: 'main',
+            data: {
+                id: parseInt(req.query.id, 10)
+                secundaryDataset: jasper.toJsonDataSource({
+                    data: ...
+                },'data')
+            }
+            dataset: //main dataset
+        };
+
+        var pdf = await jasper.pdf(report);
+
+        res.set({
+            'Content-type': 'application/pdf',
+            'Content-Length': pdf.length
+        });
+
+        res.send(pdf);
+    });
 
 	app.listen(3000);
 ```

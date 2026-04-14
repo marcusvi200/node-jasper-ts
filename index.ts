@@ -1,49 +1,47 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomBytes } from "node:crypto";
+
 import * as JasperUtils from "./jasper-utils";
 
+
+function getTempPath(suffix = '') {
+    // Gera 8 bytes aleatórios e converte para string hexadecimal (ex: 'f3a2b1c4')
+    const uniqueId = randomBytes(8).toString('hex');
+    const fileName = `temp_${uniqueId}${suffix}`;
+
+    return path.join(tmpdir(), fileName);
+}
+
 var java = null,
-    fs = require('fs'),
-    path = require('path'),
-    extend = require('extend'),
-    util = require('util'),
-    temp = require('temp'),
-    async = require('async');
+    extend = require('extend')
 
 var defaults = { reports: {}, drivers: {}, conns: {}, tmpPath: '/tmp' };
 
-function walk(dir: string, done: (err: any, results?: string[]) => void) {
+async function walk(dir: string): Promise<string[]> {
+    let results: string[] = [];
 
-    var results = [];
-    let list = [];
-    let err = undefined;
-    try {
-        list = fs.readdirSync(dir);
-    } catch (error) {
-        err = error;
+    // 1. Lendo o diretório (readdir já retorna Promise no node:fs/promises)
+    const list = await fs.readdir(dir);
+
+    // 2. Usamos for...of para que o await funcione corretamente
+    for (const file of list) {
+        const filePath = path.join(dir, file);
+        const fileStat = await fs.stat(filePath).catch(() => null);
+
+        if (fileStat && fileStat.isDirectory()) {
+            // 3. Recursão: aguarda os resultados da subpasta e concatena
+            const res = await walk(filePath);
+            results = results.concat(res);
+        } else {
+            // 4. É um arquivo, adiciona à lista
+            results.push(filePath);
+        }
     }
 
-    if (err) return done(err);
-    var pending = list.length;
-    if (!pending) return done(null, results);
-    list.forEach(function (file) {
-        file = path.join(dir, file);
-        let stat = undefined;
-        try {
-            stat = fs.statSync(file);
-        } catch (error) {
-            stat = undefined;
-        }
-
-        if (stat && stat.isDirectory()) {
-            walk(file, function (err, res) {
-                results = results.concat(res);
-                if (!--pending) done(null, results);
-            });
-        } else {
-            results.push(file);
-            if (!--pending) done(null, results);
-        }
-    });
-};
+    return results;
+}
 
 export interface ParametersJASPER {
     [key: string]: {
@@ -129,13 +127,15 @@ class JasperTS {
     private drivers: { [key: string]: options_drivers };
     private conns: { [key: string]: options_conns } = {};
     private reports: { [key: string]: options_reports } = {};
+    private _isInitialized: boolean = false;
 
     constructor(options: options) {
         this.options = options;
-        this.initilizeOptions();
     }
 
-    private initilizeOptions() {
+    async init() {
+        if (!this._isInitialized) return;
+
         if (this.options.javaInstance) {
             java = this.options.javaInstance
         } else {
@@ -152,9 +152,9 @@ class JasperTS {
 
         if (this.options.java) {
             if (Array.isArray(this.options.java)) {
-                this.options.java.forEach(function (javaOption) {
+                for (const javaOption of this.options.java) {
                     java.options.push(javaOption);
-                });
+                };
             }
             if (typeof this.options.java == 'string') {
                 java.options.push(this.options.java);
@@ -163,115 +163,120 @@ class JasperTS {
         var self = this;
         var jrPath = path.resolve(this.options.path || path.dirname(module.filename));
         self.parentPath = jrPath;
-        async.auto({
-            jrJars: function (cb: (err: any, results?: string[]) => void) {
-                if (fs.statSync(path.join(jrPath, 'lib')).isDirectory() && fs.statSync(path.join(jrPath, 'dist')).isDirectory()) {
-                    async.parallel([
-                        function (cb: (err: any, results?: string[]) => void) {
-                            walk(path.join(jrPath, 'dist'), function (err, results) {
-                                cb(err, results);
-                            });
-                        },
-                        function (cb: (err: any, results?: string[]) => void) {
-                            walk(path.join(jrPath, 'lib'), function (err, results) {
-                                cb(err, results);
-                            });
-                        }
-                    ], function (err: any, results: string[][]) {
-                        if (err) return cb(err);
-                        var r = results.shift();
-                        results.forEach(function (item) {
-                            r = r.concat(item);
-                        });
-                        cb(null, r);
-                    })
-                } else {
-                    walk(jrPath, function (err, results) {
-                        cb(err, results);
-                    });
-                }
-            },
-            dirverJars: function (cb: (err: any, results?: string[]) => void) {
-                var results = [];
-                if (self.options.drivers) {
-                    for (var i in self.options.drivers) {
-                        results.push(path.resolve(self.parentPath, self.options.drivers[i].path));
+
+        const [jrJars, driverJars] = await Promise.allSettled([
+            (async (): Promise<string[]> => {
+                try {
+                    // 1. Verifica o status das pastas lib e dist
+                    // Usamos catch() retornando null para o caso da pasta não existir
+                    const [statsLib, statsDist] = await Promise.all([
+                        fs.stat(path.join(jrPath, 'lib')).catch(() => null),
+                        fs.stat(path.join(jrPath, 'dist')).catch(() => null)
+                    ]);
+
+                    const hasLibAndDist = statsLib?.isDirectory() && statsDist?.isDirectory();
+
+                    if (hasLibAndDist) {
+                        // 2. Varre as duas pastas em paralelo
+                        const [distFiles, libFiles] = await Promise.all([
+                            walk(path.join(jrPath, 'dist')),
+                            walk(path.join(jrPath, 'lib'))
+                        ]);
+
+                        // 3. Junta os resultados (Flat array)
+                        return [...distFiles, ...libFiles];
+                    } else {
+                        // 4. Fallback: varre apenas a raiz
+                        return await walk(jrPath);
                     }
+                } catch (err) {
+                    console.error("Erro ao buscar JARs do Jasper:", err);
+                    throw err; // Lança o erro para quem chamou tratar
                 }
-                cb(null, results);
-            },
-            loadJars: ['jrJars', 'dirverJars', function (cb: () => void, jars: { jrJars: string[], dirverJars: string[] }) {
-                jars.jrJars.concat(jars.dirverJars).forEach(function (file) {
-                    if (path.extname(file) == '.jar') {
-                        java.classpath.push(file)
-                    }
+            })(),
+            (async (): Promise<string[]> => {
+                // 1. Se não houver drivers, retorna um array vazio imediatamente
+                if (!this.options.drivers || !Array.isArray(this.options.drivers)) {
+                    return [];
                 }
+
+                // 2. Usamos .map para transformar os caminhos de forma limpa
+                // path.resolve garante que o caminho seja absoluto para o node-java
+                return this.options.drivers.map(driver =>
+                    path.resolve(this.parentPath, driver.path)
                 );
-                cb();
-            }],
-            debug: ['loadJars', function (cb: () => void, results: { debug?: string }) {
-                if (!self.options.debug) self.options.debug = 'off';
-                var levels = ['ALL', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'OFF'];
-                if (levels.indexOf((self.options.debug + '').toUpperCase()) == -1) self.options.debug = 'DEBUG';
+            })()
+        ]);
 
-                /*
-                commented because in java 1.8 this causes
-            
-                #
-                # A fatal error has been detected by the Java Runtime Environment:
-                #
-                #  SIGSEGV (0xb) at pc=0x00007f5caeacbac2, pid=7, tid=0x00007f5caf3c8ae8
-                #
-                # JRE version: OpenJDK Runtime Environment (8.0_181-b13) (build 1.8.0_181-b13)
-                # Java VM: OpenJDK 64-Bit Server VM (25.181-b13 mixed mode linux-amd64 compressed oops)
-                # Derivative: IcedTea 3.9.0
-                # Distribution: Custom build (Tue Oct 23 12:48:04 GMT 2018)
-                # Problematic frame:
-                # C  [nodejavabridge_bindings.node+0x20ac2]  javaGetEnv(JavaVM_*, _jobject*)+0xa2
-                */
+        // BEGIN: loadJars
+        let jrJarsValue: string[] = [];
+        if (jrJars.status === 'fulfilled') {
+            jrJarsValue = jrJars.value;
+        }
 
-                /*
-                var appender  = java.newInstanceSync('org.apache.log4j.ConsoleAppender');
-                var pattern = java.newInstanceSync('org.apache.log4j.PatternLayout', "%d [%p|%c|%C{1}] %m%n");
-                appender.setLayout(pattern);
-                appender.setThreshold(java.getStaticFieldValue("org.apache.log4j.Level", (options.debug+'').toUpperCase()));
-                appender.activateOptions();
-                var root = java.callStaticMethodSync("org.apache.log4j.Logger", "getRootLogger");
-                root.addAppender(appender);
-                */
-                cb();
-            }],
-            loadClass: ['loadJars', function (cb: () => void, results: { loadJars: string[] }) {
-                var cl = java.callStaticMethodSync("java.lang.ClassLoader", "getSystemClassLoader")
-                for (var i in self.options.drivers) {
-                    cl.loadClassSync(self.options.drivers[i].class).newInstanceSync();
-                }
-                cb();
-            }],
-            imports: ['loadClass', function (cb: () => void, results: { loadClass: string[] }) {
-                self.dm = java.import('java.sql.DriverManager');
-                self.jreds = java.import('net.sf.jasperreports.engine.JREmptyDataSource');
-                self.jrjsonef = java.import('net.sf.jasperreports.engine.data.JsonDataSource');
-                self.jbais = java.import('java.io.ByteArrayInputStream');
-                self.jcm = java.import('net.sf.jasperreports.engine.JasperCompileManager');
-                self.jrp = java.import('net.sf.jasperreports.engine.JRParameter');
-                self.jrl = java.import('net.sf.jasperreports.engine.util.JRLoader');
-                self.hm = java.import('java.util.HashMap');
-                self.jfm = java.import('net.sf.jasperreports.engine.JasperFillManager');
-                self.jem = java.import('net.sf.jasperreports.engine.JasperExportManager');
-                self.loc = java.import('java.util.Locale');
+        let driverJarsValue: string[] = [];
+        if (driverJars.status === 'fulfilled') {
+            driverJarsValue = driverJars.value;
+        }
 
-                cb();
-            }]
-        }, function () {
-            if (self.ready) {
-                self.ready();
+        const allJars = [...jrJarsValue, ...driverJarsValue]; // Uso de Spread operator (mais moderno que concat)
+
+        for (const file of allJars) {
+            if (path.extname(file) === '.jar') {
+                java.classpath.push(path.resolve(file)); // resolve garante o caminho absoluto
             }
         }
-        );
+        // END: loadJars
+
+        // BEGIN: debug e loadClass
+        if (!this.options.debug) {
+            this.options.debug = 'off';
+        }
+
+        const levels = ['ALL', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'OFF'];
+        const debugLevel = (this.options.debug + '').toUpperCase();
+
+        if (!levels.includes(debugLevel)) {
+            this.options.debug = 'DEBUG';
+        }
+
+        // Nota: O código de Log4j continua comentado para evitar o SIGSEGV mencionado no seu legado.
+        // Se um dia for reativar, use java.newInstanceSync moderno.
+
+        // --- 2. Equivalente ao segundo bloco (Carga dos Drivers no ClassLoader) ---
+        try {
+            const systemClassLoader = java.callStaticMethodSync("java.lang.ClassLoader", "getSystemClassLoader");
+
+            if (this.options.drivers && Array.isArray(this.options.drivers)) {
+                for (const driver of this.options.drivers) {
+                    if (driver.class) {
+                        // Carrega a classe do driver e instancia para registrar no DriverManager do Java
+                        systemClassLoader.loadClassSync(driver.class).newInstanceSync();
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Erro ao carregar classes dos drivers JDBC:", err);
+            throw err;
+        }
+        // END: debug e loadClass
+
+        self.dm = java.import('java.sql.DriverManager');
+        self.jreds = java.import('net.sf.jasperreports.engine.JREmptyDataSource');
+        self.jrjsonef = java.import('net.sf.jasperreports.engine.data.JsonDataSource');
+        self.jbais = java.import('java.io.ByteArrayInputStream');
+        self.jcm = java.import('net.sf.jasperreports.engine.JasperCompileManager');
+        self.jrp = java.import('net.sf.jasperreports.engine.JRParameter');
+        self.jrl = java.import('net.sf.jasperreports.engine.util.JRLoader');
+        self.hm = java.import('java.util.HashMap');
+        self.jfm = java.import('net.sf.jasperreports.engine.JasperFillManager');
+        self.jem = java.import('net.sf.jasperreports.engine.JasperExportManager');
+        self.loc = java.import('java.util.Locale');
 
         delete this.options.path;
         extend(self, defaults, this.options);
+
+        this._isInitialized = true;
     }
 
     ready(f?: () => void) {
@@ -314,7 +319,7 @@ class JasperTS {
     }
 
     export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<any> {
-        return new Promise((resolve: (result: any) => void, reject: (reason?: any) => void) => {
+        return new Promise(async (resolve: (result: any) => void, reject: (reason?: any) => void) => {
             if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1) reject('Invalid type');
 
             try {
@@ -329,9 +334,9 @@ class JasperTS {
                         return [extend({}, self.reports[report])];
                     } else if (Array.isArray(report)) {
                         var ret = [];
-                        report.forEach(function (i) {
+                        for (const i of report) {
                             ret = ret.concat(processReport(i));
-                        });
+                        }
                         return ret;
                     } else if (typeof report == 'function') {
                         return processReport(report());
@@ -409,7 +414,9 @@ class JasperTS {
                 var reports = processReport(report);
                 var prints = [];
 
-                reports.forEach(function (item: options_reports) {
+                for (const report of reports) {
+                    const item: options_reports = report;
+
                     if (!item.jasper && item.jrxml) {
                         item.jasper = self.compileSync(item.jrxml, self.tmpPath);
                     }
@@ -437,17 +444,18 @@ class JasperTS {
                         var p = self.jfm.fillReportSync(path.resolve(self.parentPath, item.jasper), data, conn);
                         prints.push(p);
                     }
-                });
+                }
 
                 if (prints.length) {
                     var master = prints.shift();
-                    prints.forEach(function (p) {
-                        var s = p.getPagesSync().sizeSync();
-                        for (var j = 0; j < s; j++) {
+                    for (const print of prints) {
+                        var s = print.getPagesSync().sizeSync();
+                        for (let j = 0; j < s; j++) {
                             master.addPageSync(p.getPagesSync().getSync(j));
                         }
-                    });
-                    var tempName = temp.path({ suffix: `.${_type.toLowerCase()}` });
+                    }
+
+                    var tempName = getTempPath(`.${_type.toLowerCase()}`);
 
                     if (type === 'docx') {
                         let docx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRDocxExporter");
@@ -476,8 +484,8 @@ class JasperTS {
                         self.jem['exportReportTo' + _type + 'FileSync'](master, tempName);
                     }
 
-                    var exp = fs.readFileSync(tempName);
-                    fs.unlinkSync(tempName);
+                    var exp = fs.readFile(tempName);
+                    await fs.unlink(tempName);
                     resolve(exp);
                 }
                 resolve('');
@@ -487,12 +495,12 @@ class JasperTS {
         });
     }
 
-    compileJRXMLInDirSync(params: { dir: string, dstFolder?: string | undefined }) {
-        fs.readdirSync(path.resolve(process.cwd(), params.dir)).forEach((file: string) => {
+    async compileJRXMLInDirSync(params: { dir: string, dstFolder?: string | undefined }) {
+        for (const file of (await fs.readdir(path.resolve(process.cwd(), params.dir)))) {
             if (path.extname(file) == '.jrxml') {
                 this.compileSync(path.resolve(process.cwd(), params.dir, file), params.dstFolder);
             }
-        });
+        };
     }
 
     compileAllSync(dstFolder?: string | undefined) {
@@ -517,19 +525,19 @@ class JasperTS {
         return file;
     }
 
-    static compileAllSync(params: { path: string, dstFolder: string | undefined }) {
+    static async compileAllSync(params: { path: string, dstFolder: string | undefined }) {
         var filesCompiled = [];
-        var files = fs.readdirSync(params.path);
-        files.forEach(function (file: string) {
+        var files = await fs.readdir(params.path);
+        for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
-                filesCompiled.push(JasperTS.compileSync({ pathFile: params.path, jrxmlFile: `${name}.jrxml`, dstFolder: params.dstFolder }));
+                filesCompiled.push(await JasperTS.compileSync({ pathFile: params.path, jrxmlFile: `${name}.jrxml`, dstFolder: params.dstFolder }));
             }
-        });
+        }
         return filesCompiled;
     }
 
-    static compileSync(params: { pathFile: string, jrxmlFile: string, dstFolder: string | undefined }) {
+    static async compileSync(params: { pathFile: string, jrxmlFile: string, dstFolder: string | undefined }) {
         java = require('java');
 
         let pathJar: string | null = null;
@@ -539,14 +547,12 @@ class JasperTS {
             pathJar = path.join(__dirname, './jar');
 
 
-        walk(pathJar, function (err, results) {
-            if (err) throw err;
-            results.forEach(function (file) {
-                if (path.extname(file) == '.jar') {
-                    java.classpath.push(file);
-                }
-            });
-        });
+        let results = await walk(pathJar);
+        for (const file of results) {
+            if (path.extname(file) == '.jar') {
+                java.classpath.push(file);
+            }
+        }
 
         var name = path.basename(params.jrxmlFile, '.jrxml');
         var file = path.join(params.dstFolder || '/tmp', name + '.jasper');
@@ -595,7 +601,7 @@ class JasperTS {
         return result;
     }
 
-    static getParametersSync(options: { jrxml?: string, jasper?: string }): ParametersJASPER {
+    static async getParametersSync(options: { jrxml?: string, jasper?: string }): Promise<ParametersJASPER> {
         java = require('java');
 
         let pathJar: string | null = null;
@@ -605,14 +611,12 @@ class JasperTS {
             pathJar = path.join(__dirname, './jar');
 
 
-        walk(pathJar, function (err, results) {
-            if (err) throw err;
-            results.forEach(function (file) {
-                if (path.extname(file) == '.jar') {
-                    java.classpath.push(file);
-                }
-            });
-        });
+        let results = await walk(pathJar);
+        for (const file of results) {
+            if (path.extname(file) == '.jar') {
+                java.classpath.push(file);
+            }
+        }
 
         var jasperReport = null;
         if (options.jasper) {
@@ -649,10 +653,10 @@ class JasperTS {
         return result;
     }
 
-    static getParametersAllSync(options: { path: string, grouped?: boolean }): ParametersJASPER {
-        var files = fs.readdirSync(options.path);
+    static async getParametersAll(options: { path: string, grouped?: boolean }): Promise<ParametersJASPER> {
+        var files = await fs.readdir(options.path);
         var result = {};
-        files.forEach(function (file: string) {
+        for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
                 var params = JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
@@ -665,7 +669,7 @@ class JasperTS {
                     result[name] = params;
                 }
             }
-        });
+        }
         return result;
     }
 
@@ -682,7 +686,7 @@ class JasperTS {
 const JasperConfig = (options: options) => new JasperTS(options);
 
 const JasperParameters = JasperTS.getParametersSync;
-const JasperParametersFolder = JasperTS.getParametersAllSync;
+const JasperParametersFolder = JasperTS.getParametersAll;
 
 const JasperCompile = JasperTS.compileSync
 const JasperCompileFolder = JasperTS.compileAllSync

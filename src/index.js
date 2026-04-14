@@ -1,58 +1,85 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = void 0;
-const JasperUtils = require("./jasper-utils");
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
+const node_os_1 = require("node:os");
+const node_crypto_1 = require("node:crypto");
+const JasperUtils = __importStar(require("./jasper-utils"));
 exports.JasperUtils = JasperUtils;
-var java = null, fs = require('fs'), path = require('path'), extend = require('extend'), util = require('util'), temp = require('temp'), async = require('async');
+function getTempPath(suffix = '') {
+    const uniqueId = (0, node_crypto_1.randomBytes)(8).toString('hex');
+    const fileName = `temp_${uniqueId}${suffix}`;
+    return path.join((0, node_os_1.tmpdir)(), fileName);
+}
+var java = null, extend = require('extend');
 var defaults = { reports: {}, drivers: {}, conns: {}, tmpPath: '/tmp' };
-function walk(dir, done) {
-    var results = [];
-    let list = [];
-    let err = undefined;
-    try {
-        list = fs.readdirSync(dir);
-    }
-    catch (error) {
-        err = error;
-    }
-    if (err)
-        return done(err);
-    var pending = list.length;
-    if (!pending)
-        return done(null, results);
-    list.forEach(function (file) {
-        file = path.join(dir, file);
-        let stat = undefined;
-        try {
-            stat = fs.statSync(file);
-        }
-        catch (error) {
-            stat = undefined;
-        }
-        if (stat && stat.isDirectory()) {
-            walk(file, function (err, res) {
-                results = results.concat(res);
-                if (!--pending)
-                    done(null, results);
-            });
+async function walk(dir) {
+    let results = [];
+    const list = await fs.readdir(dir);
+    for (const file of list) {
+        const filePath = path.join(dir, file);
+        const fileStat = await fs.stat(filePath).catch(() => null);
+        if (fileStat && fileStat.isDirectory()) {
+            const res = await walk(filePath);
+            results = results.concat(res);
         }
         else {
-            results.push(file);
-            if (!--pending)
-                done(null, results);
+            results.push(filePath);
         }
-    });
-}
-;
-class JasperTS {
-    constructor(options) {
-        this.validConnections = {};
-        this.conns = {};
-        this.reports = {};
-        this.options = options;
-        this.initilizeOptions();
     }
-    initilizeOptions() {
+    return results;
+}
+class JasperTS {
+    options;
+    parentPath;
+    dm;
+    jreds;
+    jrjsonef;
+    jbais;
+    jcm;
+    jrp;
+    jrl;
+    hm;
+    jfm;
+    jem;
+    loc;
+    tmpPath;
+    defaultConn;
+    validConnections = {};
+    drivers;
+    conns = {};
+    reports = {};
+    _isInitialized = false;
+    constructor(options) {
+        this.options = options;
+    }
+    async init() {
+        if (!this._isInitialized)
+            return;
         if (this.options.javaInstance) {
             java = this.options.javaInstance;
         }
@@ -69,9 +96,10 @@ class JasperTS {
         }
         if (this.options.java) {
             if (Array.isArray(this.options.java)) {
-                this.options.java.forEach(function (javaOption) {
+                for (const javaOption of this.options.java) {
                     java.options.push(javaOption);
-                });
+                }
+                ;
             }
             if (typeof this.options.java == 'string') {
                 java.options.push(this.options.java);
@@ -80,89 +108,87 @@ class JasperTS {
         var self = this;
         var jrPath = path.resolve(this.options.path || path.dirname(module.filename));
         self.parentPath = jrPath;
-        async.auto({
-            jrJars: function (cb) {
-                if (fs.statSync(path.join(jrPath, 'lib')).isDirectory() && fs.statSync(path.join(jrPath, 'dist')).isDirectory()) {
-                    async.parallel([
-                        function (cb) {
-                            walk(path.join(jrPath, 'dist'), function (err, results) {
-                                cb(err, results);
-                            });
-                        },
-                        function (cb) {
-                            walk(path.join(jrPath, 'lib'), function (err, results) {
-                                cb(err, results);
-                            });
-                        }
-                    ], function (err, results) {
-                        if (err)
-                            return cb(err);
-                        var r = results.shift();
-                        results.forEach(function (item) {
-                            r = r.concat(item);
-                        });
-                        cb(null, r);
-                    });
-                }
-                else {
-                    walk(jrPath, function (err, results) {
-                        cb(err, results);
-                    });
-                }
-            },
-            dirverJars: function (cb) {
-                var results = [];
-                if (self.options.drivers) {
-                    for (var i in self.options.drivers) {
-                        results.push(path.resolve(self.parentPath, self.options.drivers[i].path));
+        const [jrJars, driverJars] = await Promise.allSettled([
+            (async () => {
+                try {
+                    const [statsLib, statsDist] = await Promise.all([
+                        fs.stat(path.join(jrPath, 'lib')).catch(() => null),
+                        fs.stat(path.join(jrPath, 'dist')).catch(() => null)
+                    ]);
+                    const hasLibAndDist = statsLib?.isDirectory() && statsDist?.isDirectory();
+                    if (hasLibAndDist) {
+                        const [distFiles, libFiles] = await Promise.all([
+                            walk(path.join(jrPath, 'dist')),
+                            walk(path.join(jrPath, 'lib'))
+                        ]);
+                        return [...distFiles, ...libFiles];
+                    }
+                    else {
+                        return await walk(jrPath);
                     }
                 }
-                cb(null, results);
-            },
-            loadJars: ['jrJars', 'dirverJars', function (cb, jars) {
-                    jars.jrJars.concat(jars.dirverJars).forEach(function (file) {
-                        if (path.extname(file) == '.jar') {
-                            java.classpath.push(file);
-                        }
-                    });
-                    cb();
-                }],
-            debug: ['loadJars', function (cb, results) {
-                    if (!self.options.debug)
-                        self.options.debug = 'off';
-                    var levels = ['ALL', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'OFF'];
-                    if (levels.indexOf((self.options.debug + '').toUpperCase()) == -1)
-                        self.options.debug = 'DEBUG';
-                    cb();
-                }],
-            loadClass: ['loadJars', function (cb, results) {
-                    var cl = java.callStaticMethodSync("java.lang.ClassLoader", "getSystemClassLoader");
-                    for (var i in self.options.drivers) {
-                        cl.loadClassSync(self.options.drivers[i].class).newInstanceSync();
-                    }
-                    cb();
-                }],
-            imports: ['loadClass', function (cb, results) {
-                    self.dm = java.import('java.sql.DriverManager');
-                    self.jreds = java.import('net.sf.jasperreports.engine.JREmptyDataSource');
-                    self.jrjsonef = java.import('net.sf.jasperreports.engine.data.JsonDataSource');
-                    self.jbais = java.import('java.io.ByteArrayInputStream');
-                    self.jcm = java.import('net.sf.jasperreports.engine.JasperCompileManager');
-                    self.jrp = java.import('net.sf.jasperreports.engine.JRParameter');
-                    self.jrl = java.import('net.sf.jasperreports.engine.util.JRLoader');
-                    self.hm = java.import('java.util.HashMap');
-                    self.jfm = java.import('net.sf.jasperreports.engine.JasperFillManager');
-                    self.jem = java.import('net.sf.jasperreports.engine.JasperExportManager');
-                    self.loc = java.import('java.util.Locale');
-                    cb();
-                }]
-        }, function () {
-            if (self.ready) {
-                self.ready();
+                catch (err) {
+                    console.error("Erro ao buscar JARs do Jasper:", err);
+                    throw err;
+                }
+            })(),
+            (async () => {
+                if (!this.options.drivers || !Array.isArray(this.options.drivers)) {
+                    return [];
+                }
+                return this.options.drivers.map(driver => path.resolve(this.parentPath, driver.path));
+            })()
+        ]);
+        let jrJarsValue = [];
+        if (jrJars.status === 'fulfilled') {
+            jrJarsValue = jrJars.value;
+        }
+        let driverJarsValue = [];
+        if (driverJars.status === 'fulfilled') {
+            driverJarsValue = driverJars.value;
+        }
+        const allJars = [...jrJarsValue, ...driverJarsValue];
+        for (const file of allJars) {
+            if (path.extname(file) === '.jar') {
+                java.classpath.push(path.resolve(file));
             }
-        });
+        }
+        if (!this.options.debug) {
+            this.options.debug = 'off';
+        }
+        const levels = ['ALL', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL', 'OFF'];
+        const debugLevel = (this.options.debug + '').toUpperCase();
+        if (!levels.includes(debugLevel)) {
+            this.options.debug = 'DEBUG';
+        }
+        try {
+            const systemClassLoader = java.callStaticMethodSync("java.lang.ClassLoader", "getSystemClassLoader");
+            if (this.options.drivers && Array.isArray(this.options.drivers)) {
+                for (const driver of this.options.drivers) {
+                    if (driver.class) {
+                        systemClassLoader.loadClassSync(driver.class).newInstanceSync();
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.error("Erro ao carregar classes dos drivers JDBC:", err);
+            throw err;
+        }
+        self.dm = java.import('java.sql.DriverManager');
+        self.jreds = java.import('net.sf.jasperreports.engine.JREmptyDataSource');
+        self.jrjsonef = java.import('net.sf.jasperreports.engine.data.JsonDataSource');
+        self.jbais = java.import('java.io.ByteArrayInputStream');
+        self.jcm = java.import('net.sf.jasperreports.engine.JasperCompileManager');
+        self.jrp = java.import('net.sf.jasperreports.engine.JRParameter');
+        self.jrl = java.import('net.sf.jasperreports.engine.util.JRLoader');
+        self.hm = java.import('java.util.HashMap');
+        self.jfm = java.import('net.sf.jasperreports.engine.JasperFillManager');
+        self.jem = java.import('net.sf.jasperreports.engine.JasperExportManager');
+        self.loc = java.import('java.util.Locale');
         delete this.options.path;
         extend(self, defaults, this.options);
+        this._isInitialized = true;
     }
     ready(f) {
         var self = this;
@@ -195,7 +221,7 @@ class JasperTS {
         return this.export(report, 'xml', embeddingImages);
     }
     export(report, type, embeddingImages = false) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1)
                 reject('Invalid type');
             try {
@@ -209,9 +235,9 @@ class JasperTS {
                     }
                     else if (Array.isArray(report)) {
                         var ret = [];
-                        report.forEach(function (i) {
+                        for (const i of report) {
                             ret = ret.concat(processReport(i));
-                        });
+                        }
                         return ret;
                     }
                     else if (typeof report == 'function') {
@@ -283,7 +309,8 @@ class JasperTS {
                 };
                 var reports = processReport(report);
                 var prints = [];
-                reports.forEach(function (item) {
+                for (const report of reports) {
+                    const item = report;
                     if (!item.jasper && item.jrxml) {
                         item.jasper = self.compileSync(item.jrxml, self.tmpPath);
                     }
@@ -308,16 +335,16 @@ class JasperTS {
                         var p = self.jfm.fillReportSync(path.resolve(self.parentPath, item.jasper), data, conn);
                         prints.push(p);
                     }
-                });
+                }
                 if (prints.length) {
                     var master = prints.shift();
-                    prints.forEach(function (p) {
-                        var s = p.getPagesSync().sizeSync();
-                        for (var j = 0; j < s; j++) {
+                    for (const print of prints) {
+                        var s = print.getPagesSync().sizeSync();
+                        for (let j = 0; j < s; j++) {
                             master.addPageSync(p.getPagesSync().getSync(j));
                         }
-                    });
-                    var tempName = temp.path({ suffix: `.${_type.toLowerCase()}` });
+                    }
+                    var tempName = getTempPath(`.${_type.toLowerCase()}`);
                     if (type === 'docx') {
                         let docx = java.newInstanceSync("net.sf.jasperreports.engine.export.ooxml.JRDocxExporter");
                         let parameters = java.import("net.sf.jasperreports.engine.JRExporterParameter");
@@ -345,8 +372,8 @@ class JasperTS {
                     else {
                         self.jem['exportReportTo' + _type + 'FileSync'](master, tempName);
                     }
-                    var exp = fs.readFileSync(tempName);
-                    fs.unlinkSync(tempName);
+                    var exp = fs.readFile(tempName);
+                    await fs.unlink(tempName);
                     resolve(exp);
                 }
                 resolve('');
@@ -356,12 +383,13 @@ class JasperTS {
             }
         });
     }
-    compileJRXMLInDirSync(params) {
-        fs.readdirSync(path.resolve(process.cwd(), params.dir)).forEach((file) => {
+    async compileJRXMLInDirSync(params) {
+        for (const file of (await fs.readdir(path.resolve(process.cwd(), params.dir)))) {
             if (path.extname(file) == '.jrxml') {
                 this.compileSync(path.resolve(process.cwd(), params.dir, file), params.dstFolder);
             }
-        });
+        }
+        ;
     }
     compileAllSync(dstFolder) {
         var self = this;
@@ -379,32 +407,29 @@ class JasperTS {
         java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(process.cwd(), jrxmlFile), file);
         return file;
     }
-    static compileAllSync(params) {
+    static async compileAllSync(params) {
         var filesCompiled = [];
-        var files = fs.readdirSync(params.path);
-        files.forEach(function (file) {
+        var files = await fs.readdir(params.path);
+        for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
-                filesCompiled.push(JasperTS.compileSync({ pathFile: params.path, jrxmlFile: `${name}.jrxml`, dstFolder: params.dstFolder }));
+                filesCompiled.push(await JasperTS.compileSync({ pathFile: params.path, jrxmlFile: `${name}.jrxml`, dstFolder: params.dstFolder }));
             }
-        });
+        }
         return filesCompiled;
     }
-    static compileSync(params) {
+    static async compileSync(params) {
         java = require('java');
         let pathJar = null;
         path.dirname(module.filename).split(path.sep).pop() === 'src' ?
             pathJar = path.join(path.dirname(module.filename), '../jar') :
             pathJar = path.join(__dirname, './jar');
-        walk(pathJar, function (err, results) {
-            if (err)
-                throw err;
-            results.forEach(function (file) {
-                if (path.extname(file) == '.jar') {
-                    java.classpath.push(file);
-                }
-            });
-        });
+        let results = await walk(pathJar);
+        for (const file of results) {
+            if (path.extname(file) == '.jar') {
+                java.classpath.push(file);
+            }
+        }
         var name = path.basename(params.jrxmlFile, '.jrxml');
         var file = path.join(params.dstFolder || '/tmp', name + '.jasper');
         java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(params.pathFile, path.join(params.pathFile, params.jrxmlFile)), file);
@@ -435,21 +460,18 @@ class JasperTS {
         }
         return result;
     }
-    static getParametersSync(options) {
+    static async getParametersSync(options) {
         java = require('java');
         let pathJar = null;
         path.dirname(module.filename).split(path.sep).pop() === 'src' ?
             pathJar = path.join(path.dirname(module.filename), '../jar') :
             pathJar = path.join(__dirname, './jar');
-        walk(pathJar, function (err, results) {
-            if (err)
-                throw err;
-            results.forEach(function (file) {
-                if (path.extname(file) == '.jar') {
-                    java.classpath.push(file);
-                }
-            });
-        });
+        let results = await walk(pathJar);
+        for (const file of results) {
+            if (path.extname(file) == '.jar') {
+                java.classpath.push(file);
+            }
+        }
         var jasperReport = null;
         if (options.jasper) {
             jasperReport = java.callStaticMethodSync("net.sf.jasperreports.engine.util.JRLoader", "loadObjectFromFile", options.jasper);
@@ -474,21 +496,24 @@ class JasperTS {
         }
         return result;
     }
-    static getParametersAllSync(options) {
-        var files = fs.readdirSync(options.path);
+    static async getParametersAll(options) {
+        var files = await fs.readdir(options.path);
         var result = {};
-        files.forEach(function (file) {
+        for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
                 var params = JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
                 if (options.grouped) {
-                    result = Object.assign(Object.assign({}, result), params);
+                    result = {
+                        ...result,
+                        ...params
+                    };
                 }
                 else {
                     result[name] = params;
                 }
             }
-        });
+        }
         return result;
     }
     toJsonDataSource(dataset, query) {
@@ -504,7 +529,7 @@ const JasperConfig = (options) => new JasperTS(options);
 exports.JasperConfig = JasperConfig;
 const JasperParameters = JasperTS.getParametersSync;
 exports.JasperParameters = JasperParameters;
-const JasperParametersFolder = JasperTS.getParametersAllSync;
+const JasperParametersFolder = JasperTS.getParametersAll;
 exports.JasperParametersFolder = JasperParametersFolder;
 const JasperCompile = JasperTS.compileSync;
 exports.JasperCompile = JasperCompile;

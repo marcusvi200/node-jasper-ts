@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "node index.js",
+            "command": "npm run test",
             "name": "Run development",
             "request": "launch",
             "type": "node-terminal"
