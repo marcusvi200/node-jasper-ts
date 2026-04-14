@@ -114,6 +114,13 @@ export declare class JasperTS {
         path: string;
         grouped?: boolean;
     }): Promise<ParametersJASPER>;
+    static getReportsJRXML(options: {
+        path: string;
+        connDefault: string;
+    }): Promise<{
+        jrxml: string;
+        conn: string;
+    }[]>;
     toJsonDataSource(dataset: any, query: string): any;
 }
 declare const JasperConfig: (options: options) => JasperTS;
@@ -121,4 +128,5 @@ declare const JasperParameters: typeof JasperTS.getParametersSync;
 declare const JasperParametersFolder: typeof JasperTS.getParametersAll;
 declare const JasperCompile: typeof JasperTS.compileSync;
 declare const JasperCompileFolder: typeof JasperTS.compileAllSync;
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder, JasperUtils };
+declare const JasperGetReportsJRXML: typeof JasperTS.getReportsJRXML;
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils };

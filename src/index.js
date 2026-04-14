@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = exports.JasperTS = void 0;
+exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperGetReportsJRXML = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = exports.JasperTS = void 0;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const node_os_1 = require("node:os");
@@ -502,7 +502,7 @@ class JasperTS {
         for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
-                var params = JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
+                var params = await JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
                 if (options.grouped) {
                     result = {
                         ...result,
@@ -515,6 +515,16 @@ class JasperTS {
             }
         }
         return result;
+    }
+    static async getReportsJRXML(options) {
+        let jrxmls = [];
+        let files = await walk(options.path);
+        for (const file of files) {
+            if (path.extname(file) === '.jrxml') {
+                jrxmls.push({ jrxml: file, conn: options.connDefault });
+            }
+        }
+        return jrxmls;
     }
     toJsonDataSource(dataset, query) {
         var self = this;
@@ -536,4 +546,6 @@ const JasperCompile = JasperTS.compileSync;
 exports.JasperCompile = JasperCompile;
 const JasperCompileFolder = JasperTS.compileAllSync;
 exports.JasperCompileFolder = JasperCompileFolder;
+const JasperGetReportsJRXML = JasperTS.getReportsJRXML;
+exports.JasperGetReportsJRXML = JasperGetReportsJRXML;
 //# sourceMappingURL=index.js.map
