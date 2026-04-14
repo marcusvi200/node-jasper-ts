@@ -659,7 +659,7 @@ export class JasperTS {
         for (const file of files) {
             if (path.extname(file) == '.jrxml') {
                 var name = path.basename(file, '.jrxml');
-                var params = JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
+                var params = await JasperTS.getParametersSync({ jrxml: path.join(options.path, file) });
                 if (options.grouped) {
                     result = {
                         ...result,
@@ -671,6 +671,18 @@ export class JasperTS {
             }
         }
         return result;
+    }
+
+    static async getReportsJRXML(options: { path: string, connDefault: string }) {
+        let jrxmls: { jrxml: string, conn: string }[] = [];
+        let files = await walk(options.path);
+        for (const file of files) {
+            if (path.extname(file) === '.jrxml') {
+                jrxmls.push({ jrxml: file, conn: options.connDefault });
+            }
+        }
+
+        return jrxmls;
     }
 
     toJsonDataSource(dataset: any, query: string) {
@@ -690,5 +702,6 @@ const JasperParametersFolder = JasperTS.getParametersAll;
 
 const JasperCompile = JasperTS.compileSync
 const JasperCompileFolder = JasperTS.compileAllSync
+const JasperGetReportsJRXML = JasperTS.getReportsJRXML
 
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperParameters, JasperParametersFolder, JasperUtils };
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils };
