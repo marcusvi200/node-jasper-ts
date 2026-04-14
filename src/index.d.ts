@@ -54,7 +54,7 @@ export interface options_report {
     dataset?: any;
     query?: string;
 }
-declare class JasperTS {
+export declare class JasperTS {
     private options;
     private parentPath;
     private dm;

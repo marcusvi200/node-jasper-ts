@@ -107,7 +107,7 @@ export interface options_report {
     query?: string //Query to be used in the report
 }
 
-class JasperTS {
+export class JasperTS {
     private options: options;
     private parentPath: string;
     private dm: any;

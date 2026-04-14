@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = void 0;
+exports.JasperUtils = exports.JasperParametersFolder = exports.JasperParameters = exports.JasperCompileFolder = exports.JasperConfig = exports.JasperCompile = exports.JasperTS = void 0;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const node_os_1 = require("node:os");
@@ -525,6 +525,7 @@ class JasperTS {
         return new self.jrjsonef(new self.jbais(byteArray), query || '');
     }
 }
+exports.JasperTS = JasperTS;
 const JasperConfig = (options) => new JasperTS(options);
 exports.JasperConfig = JasperConfig;
 const JasperParameters = JasperTS.getParametersSync;
