@@ -48,7 +48,7 @@
 	<summary>
 		<band height="48" splitType="Stretch">
 			<subreport>
-				<reportElement x="0" y="0" width="555" height="48"/>
+				<reportElement key="rel_teste_subreport1" x="0" y="0" width="555" height="48"/>
 				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				<subreportExpression class="java.lang.String"><![CDATA[$P{SUBREPORT_DIR} + "rel_teste_subreport1.jasper"]]></subreportExpression>
 			</subreport>
