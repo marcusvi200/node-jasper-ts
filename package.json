@@ -1,6 +1,6 @@
 {
   "name": "node-jasper-ts",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "JasperReports within Node.js",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -47,6 +47,7 @@
     "dotenv": "^17.4.2",
     "extend": "^3.0.2",
     "java": "^0.18.0",
-    "moment": "^2.30.1"
+    "moment": "^2.30.1",
+    "xml2js": "^0.6.2"
   }
 }

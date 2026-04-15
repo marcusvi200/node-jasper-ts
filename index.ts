@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from "node:crypto";
+import * as xml2js from 'xml2js';
 
 import * as JasperUtils from "./jasper-utils";
 
@@ -12,6 +13,31 @@ function getTempPath(suffix = '') {
     const fileName = `temp_${uniqueId}${suffix}`;
 
     return path.join(tmpdir(), fileName);
+}
+
+function buildHierarchy(params: { name: string, parent?: string, children?: any[], [key: string]: any }[]) {
+    const map = {};
+    const root = { value: null, children: [] };
+
+    // Mapeia os nós pelo nome
+    for (const item of params) {
+        item.children = [];
+        map[item.name] = item;
+    }
+
+    // Constrói a hierarquia
+    for (const item of params) {
+        const parent = map[item.parent || '-'];
+        if (parent) {
+            parent.children.push(item);
+        } else {
+            root.children.push(item);
+        }
+    }
+
+    root.value = root.children[0];
+
+    return root;
 }
 
 var java = null,
@@ -41,6 +67,18 @@ async function walk(dir: string): Promise<string[]> {
     }
 
     return results;
+}
+
+export interface HierarchyInterface {
+    folderJrxml: string,
+    hierarchy: { value: any, children: any[] },
+    subReportsLoaded: string[],
+    compile: {
+        [key: string]: {
+            jrxml: string,
+            conn: string
+        }
+    }
 }
 
 export interface ParametersJASPER {
@@ -693,6 +731,83 @@ export class JasperTS {
         }));
         return new self.jrjsonef(new self.jbais(byteArray), query || '');
     }
+
+    static async mountHierarchy(options: { folder: string, conn: string }): Promise<HierarchyInterface> {
+        let folderCompile = path.resolve(options.folder);
+
+        let contentFolder = await fs.readdir(folderCompile);
+
+        let reports = contentFolder.filter((item) => item.includes(".jrxml"));
+
+        if (reports.length === 0) {
+            throw new Error('No reports found');
+        }
+
+        let filesToCompile: { [key: string]: { jrxml: string, conn: string } } = {};
+        let subReportsLoaded: string[] = [];
+        let joinReports: { name: string, children: string[], parent: string }[] = [];
+
+        for (let i = 0; i < reports.length; i++) {
+            let filePath = path.resolve(folderCompile, reports[i]);
+            let report = await xml2js.parseStringPromise(Buffer.from((await fs.readFile(filePath)).buffer));
+            let reportName = reports[i].replace(".jrxml", "");
+            let nameReport = report.jasperReport.$.name;
+            let nameFormatted = `${nameReport || reportName}`;
+
+            let subreports = await Promise.all((Buffer.from((await fs.readFile(filePath)).buffer).toString().match(/<subreport[\s\S]*?>[\s\S]*?<\/subreport>/g) || [])
+                .map(async (sub: any) => {
+                    return await xml2js.parseStringPromise(sub);
+                })
+            );
+
+            if (!subReportsLoaded.includes(nameFormatted)) {
+                subReportsLoaded.push(nameFormatted);
+            }
+
+            if (subreports.length > 0) {
+                for (let j = 0; j < subreports.length; j++) {
+                    let subreport = subreports[j];
+                    let keySubreport = subreport.subreport.reportElement[0]['$']['key'];
+
+                    if (!keySubreport) {
+                        throw new Error(`Key not found in subreport ${nameFormatted}`);
+                    } else {
+                        let find = joinReports.find(jr => jr.name === nameFormatted);
+                        if (!find) {
+                            joinReports.push({ name: nameFormatted, children: [], parent: "" });
+                            find = joinReports.find(jr => jr.name === nameFormatted);
+                        }
+
+                        find.children.push(keySubreport);
+
+                        let findSub = joinReports.find(jr => jr.name === keySubreport);
+                        if (!findSub) {
+                            joinReports.push({ name: keySubreport, children: [], parent: nameFormatted });
+                        } else {
+                            findSub.parent = nameFormatted;
+                        }
+                    }
+                }
+            } else {
+                let find = joinReports.find(jr => jr.name === nameFormatted);
+                if (!find) {
+                    joinReports.push({ name: nameFormatted, children: [], parent: "" });
+                }
+            }
+
+            filesToCompile = {
+                ...filesToCompile,
+                [nameFormatted]: {
+                    jrxml: filePath,
+                    conn: options.conn
+                }
+            }
+        }
+
+        let hierarchy = buildHierarchy(joinReports);
+
+        return { hierarchy: hierarchy, subReportsLoaded, compile: filesToCompile, folderJrxml: folderCompile };
+    }
 }
 
 const JasperConfig = (options: options) => new JasperTS(options);
@@ -700,8 +815,9 @@ const JasperConfig = (options: options) => new JasperTS(options);
 const JasperParameters = JasperTS.getParametersSync;
 const JasperParametersFolder = JasperTS.getParametersAll;
 
-const JasperCompile = JasperTS.compileSync
-const JasperCompileFolder = JasperTS.compileAllSync
-const JasperGetReportsJRXML = JasperTS.getReportsJRXML
+const JasperCompile = JasperTS.compileSync;
+const JasperCompileFolder = JasperTS.compileAllSync;
+const JasperGetReportsJRXML = JasperTS.getReportsJRXML;
+const JasperMountHierarchy = JasperTS.mountHierarchy;
 
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils };
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils, JasperMountHierarchy };

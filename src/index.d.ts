@@ -1,4 +1,18 @@
 import * as JasperUtils from "./jasper-utils";
+export interface HierarchyInterface {
+    folderJrxml: string;
+    hierarchy: {
+        value: any;
+        children: any[];
+    };
+    subReportsLoaded: string[];
+    compile: {
+        [key: string]: {
+            jrxml: string;
+            conn: string;
+        };
+    };
+}
 export interface ParametersJASPER {
     [key: string]: {
         type: string;
@@ -122,6 +136,10 @@ export declare class JasperTS {
         conn: string;
     }[]>;
     toJsonDataSource(dataset: any, query: string): any;
+    static mountHierarchy(options: {
+        folder: string;
+        conn: string;
+    }): Promise<HierarchyInterface>;
 }
 declare const JasperConfig: (options: options) => JasperTS;
 declare const JasperParameters: typeof JasperTS.getParametersSync;
@@ -129,4 +147,5 @@ declare const JasperParametersFolder: typeof JasperTS.getParametersAll;
 declare const JasperCompile: typeof JasperTS.compileSync;
 declare const JasperCompileFolder: typeof JasperTS.compileAllSync;
 declare const JasperGetReportsJRXML: typeof JasperTS.getReportsJRXML;
-export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils };
+declare const JasperMountHierarchy: typeof JasperTS.mountHierarchy;
+export { JasperCompile, JasperConfig, JasperCompileFolder, JasperGetReportsJRXML, JasperParameters, JasperParametersFolder, JasperUtils, JasperMountHierarchy };
