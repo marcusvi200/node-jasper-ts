@@ -8,6 +8,123 @@ Adapting the package: node-jasper: [node-jasper](https://github.com/agmoyano/nod
 
 ## News
 
+### 3.0.0
+Now you can use as Module inside of NestJS
+
+*app.module.ts*
+```
+import { Module } from '@nestjs/common';
+import { JasperModule } from 'node-jasper-ts/nest';
+
+@Module({
+  imports: [
+    JasperModule.forRoot({
+      drivers: {
+        oracle: {
+          path: 'jar/dist/ojdbc11g.jar',
+          class: 'oracle.jdbc.driver.OracleDriver',
+          type: 'oracle'
+        }
+      },
+      conns: {
+        default: {
+          user: Utils.env.DB_USERNAME!,
+          pass: Utils.env.DB_PASSWORD!,
+          jdbc: `jdbc:oracle:thin:@${Utils.env.DB_HOST}:${Utils.env.DB_PORT}:${Utils.env.DB_SERVICENAME}`,
+          driver: 'oracle'
+        }
+      },
+      tmpPath: 'temp/tmp',
+      defaultConn: 'default',
+      java: ["-Djava.awt.headless=true", "-Xms256m", "-Xmx512m"],
+    }),
+  ],
+  controllers: [],
+  providers: [],
+})
+export class AppModule { }
+```
+
+*report.controller.ts*
+```
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ReportService } from './report.service';
+
+@Controller('report')
+export class ReportController {
+
+    constructor(
+        private readonly reportService: ReportService
+    ) { }
+
+    @Get('params/:idReport')
+    getParams(@Param('idReport') idReport: number) {
+        return this.reportService.getParams(idReport);
+    }
+
+    @Post('generate/:idReport')
+    generateReport(@Param('idReport') idReport: number, @Body() body: { type: string, data: { [key: string]: any } }) {
+        return this.reportService.generateReport(idReport, body.type, body.data);
+    }
+
+}
+```
+
+*report.service.ts*
+```
+import { HttpException, HttpStatus, Injectable, StreamableFile } from '@nestjs/common';
+import { JasperService } from 'node-jasper-ts/nest';
+
+@Injectable()
+export class ReportService {
+
+    // Base folder where report subfolders are located
+    private readonly baseFolder: string = `${process.cwd()}/jrxml/files`;
+
+    constructor(private readonly jasperService: JasperService) { }
+
+    // List of JRXML parameters in the folder
+    async getParams(idReport: number) {
+        const folder = `${this.baseFolder}/${idReport}`;
+
+        let params = await this.jasperService.getParameters({ dirReport: folder, grouped: true });
+
+        return params;
+    }
+
+    // Generate the report
+    async generateReport(idReport: number, type: string = 'pdf', params?: { [key: string]: any }) {
+        try {
+            const folder = `${this.baseFolder}/${idReport}`;
+
+            const report = await this.jasperService.createReport({ conn: 'default', dirReport: folder });
+
+            await report.loadParameters(params);
+
+            switch (type.toLowerCase()) {
+                case 'pdf':
+                    return new StreamableFile(await report.pdf());
+                case 'xlsx':
+                    return new StreamableFile(await report.xlsx());
+                case 'docx':
+                    return new StreamableFile(await report.docx());
+                case 'pptx':
+                    return new StreamableFile(await report.pptx());
+                case 'html':
+                    return new StreamableFile(await report.html());
+                case 'xml':
+                    return new StreamableFile(await report.xml(false));
+                default:
+                    throw new Error(`Incompatible type`);
+            }
+        } catch (error) {
+            throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+}
+```
+
 ### 2.0.0
 Updated to Node 22
 

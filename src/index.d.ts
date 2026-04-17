@@ -94,13 +94,13 @@ export declare class JasperTS {
     ready(f?: () => void): void;
     add(name: any, def: any): void;
     parseBigDecimal(value: number | string | null | undefined): any;
-    docx(report: options_report): Promise<any>;
-    xlsx(report: options_report): Promise<any>;
-    pptx(report: options_report): Promise<any>;
-    pdf(report: options_report): Promise<any>;
-    html(report: options_report): Promise<any>;
-    xml(report: options_report, embeddingImages?: boolean): Promise<any>;
-    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages?: boolean): Promise<any>;
+    docx(report: options_report): Promise<BinaryType>;
+    xlsx(report: options_report): Promise<BinaryType>;
+    pptx(report: options_report): Promise<BinaryType>;
+    pdf(report: options_report): Promise<BinaryType>;
+    html(report: options_report): Promise<BinaryType>;
+    xml(report: options_report, embeddingImages?: boolean): Promise<BinaryType>;
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages?: boolean): Promise<BinaryType>;
     compileJRXMLInDirSync(params: {
         dir: string;
         dstFolder?: string | undefined;

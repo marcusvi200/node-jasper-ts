@@ -1,7 +1,7 @@
 {
   "name": "node-jasper-ts",
-  "version": "2.0.5",
-  "description": "JasperReports within Node.js",
+  "version": "3.0.0",
+  "description": "JasperReports in Node.js - Compatible with NestJS",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "scripts": {
@@ -11,6 +11,8 @@
   "keywords": [
     "jrxml",
     "jasper",
+    "nestjs",
+    "nest",
     "JasperReports",
     "pdf",
     "doc",
@@ -37,13 +39,14 @@
     "typescript": "^4.7.4"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/marcusvi200/node-jasper-ts.git"
   },
   "dependencies": {
+    "@nestjs/common": "^11.1.19",
     "dotenv": "^17.4.2",
     "extend": "^3.0.2",
     "java": "^0.18.0",

@@ -332,31 +332,31 @@ export class JasperTS {
         return vBD;
     }
 
-    docx(report: options_report): Promise<any> {
+    docx(report: options_report): Promise<BinaryType> {
         return this.export(report, 'docx');
     }
 
-    xlsx(report: options_report): Promise<any> {
+    xlsx(report: options_report): Promise<BinaryType> {
         return this.export(report, 'xlsx');
     }
 
-    pptx(report: options_report): Promise<any> {
+    pptx(report: options_report): Promise<BinaryType> {
         return this.export(report, 'pptx');
     }
 
-    pdf(report: options_report): Promise<any> {
+    pdf(report: options_report): Promise<BinaryType> {
         return this.export(report, 'pdf');
     }
 
-    html(report: options_report): Promise<any> {
+    html(report: options_report): Promise<BinaryType> {
         return this.export(report, 'html');
     }
 
-    xml(report: options_report, embeddingImages: boolean = true): Promise<any> {
+    xml(report: options_report, embeddingImages: boolean = true): Promise<BinaryType> {
         return this.export(report, 'xml', embeddingImages);
     }
 
-    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<any> {
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<BinaryType> {
         return new Promise(async (resolve: (result: any) => void, reject: (reason?: any) => void) => {
             if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1) reject('Invalid type');
 
