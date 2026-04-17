@@ -1,4 +1,7 @@
-import { JasperService as jasperService } from "./jasper.service";
-import { JasperModule as jasperModule } from "./jasper.module";
-export declare const JasperModule: typeof jasperModule;
-export declare const JasperService: typeof jasperService;
+import { JasperService } from "./jasper.service";
+import { JasperModule } from "./jasper.module";
+declare const _default: {
+    JasperService: typeof JasperService;
+    JasperModule: typeof JasperModule;
+};
+export default _default;

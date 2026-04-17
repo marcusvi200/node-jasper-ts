@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="node" />
 import { HierarchyInterface, JasperTS, ParametersJASPER } from '../index';
 import type { optionsJasperInitial } from './interfaces/jasper-options.interface';
 export declare class JasperService {
@@ -21,11 +23,11 @@ declare class Report {
     loadParameters(data: {
         [key: string]: any;
     }): Promise<Report>;
-    pdf(): Promise<BinaryType>;
-    xlsx(): Promise<BinaryType>;
-    docx(): Promise<BinaryType>;
-    xml(embeddingImages?: boolean): Promise<BinaryType>;
-    html(): Promise<BinaryType>;
-    pptx(): Promise<BinaryType>;
+    pdf(): Promise<Buffer>;
+    xlsx(): Promise<Buffer>;
+    docx(): Promise<Buffer>;
+    xml(embeddingImages?: boolean): Promise<Buffer>;
+    html(): Promise<Buffer>;
+    pptx(): Promise<Buffer>;
 }
 export {};

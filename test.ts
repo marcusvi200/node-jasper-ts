@@ -41,7 +41,7 @@ jasperReport.init().then(async () => {
             id: 1
         },
     }).then(async (result) => {
-        await fs.writeFile("exported/test.pdf", Buffer.from(result, 'binary'));
+        await fs.writeFile("exported/test.pdf", Buffer.from(result));
         console.log("Arquivo gerado com sucesso!");
         process.exit(0);
     }).catch((err: any) => {

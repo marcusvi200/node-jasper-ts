@@ -356,7 +356,7 @@ export class JasperTS {
      *
      * @param report Report name or report configuration used to render the output.
      */
-    docx(report: options_report): Promise<BinaryType> {
+    docx(report: options_report): Promise<Buffer> {
         return this.export(report, 'docx');
     }
 
@@ -365,7 +365,7 @@ export class JasperTS {
      *
      * @param report Report name or report configuration used to render the output.
      */
-    xlsx(report: options_report): Promise<BinaryType> {
+    xlsx(report: options_report): Promise<Buffer> {
         return this.export(report, 'xlsx');
     }
 
@@ -374,7 +374,7 @@ export class JasperTS {
      *
      * @param report Report name or report configuration used to render the output.
      */
-    pptx(report: options_report): Promise<BinaryType> {
+    pptx(report: options_report): Promise<Buffer> {
         return this.export(report, 'pptx');
     }
 
@@ -383,7 +383,7 @@ export class JasperTS {
      *
      * @param report Report name or report configuration used to render the output.
      */
-    pdf(report: options_report): Promise<BinaryType> {
+    pdf(report: options_report): Promise<Buffer> {
         return this.export(report, 'pdf');
     }
 
@@ -392,7 +392,7 @@ export class JasperTS {
      *
      * @param report Report name or report configuration used to render the output.
      */
-    html(report: options_report): Promise<BinaryType> {
+    html(report: options_report): Promise<Buffer> {
         return this.export(report, 'html');
     }
 
@@ -402,7 +402,7 @@ export class JasperTS {
      * @param report Report name or report configuration used to render the output.
      * @param embeddingImages When true, embeds report images directly into the XML export.
      */
-    xml(report: options_report, embeddingImages: boolean = true): Promise<BinaryType> {
+    xml(report: options_report, embeddingImages: boolean = true): Promise<Buffer> {
         return this.export(report, 'xml', embeddingImages);
     }
 
@@ -413,7 +413,7 @@ export class JasperTS {
      * @param type Output format to generate.
      * @param embeddingImages Applies only to XML export and controls whether images are embedded.
      */
-    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<BinaryType> {
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages: boolean = false): Promise<Buffer> {
         return new Promise(async (resolve: (result: any) => void, reject: (reason?: any) => void) => {
             if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1) reject('Invalid type');
 

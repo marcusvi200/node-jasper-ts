@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="node" />
 import * as JasperUtils from "./jasper-utils";
 export interface HierarchyInterface {
     folderJrxml: string;
@@ -94,13 +96,13 @@ export declare class JasperTS {
     ready(f?: () => void): void;
     add(name: any, def: any): void;
     parseBigDecimal(value: number | string | null | undefined): any;
-    docx(report: options_report): Promise<BinaryType>;
-    xlsx(report: options_report): Promise<BinaryType>;
-    pptx(report: options_report): Promise<BinaryType>;
-    pdf(report: options_report): Promise<BinaryType>;
-    html(report: options_report): Promise<BinaryType>;
-    xml(report: options_report, embeddingImages?: boolean): Promise<BinaryType>;
-    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages?: boolean): Promise<BinaryType>;
+    docx(report: options_report): Promise<Buffer>;
+    xlsx(report: options_report): Promise<Buffer>;
+    pptx(report: options_report): Promise<Buffer>;
+    pdf(report: options_report): Promise<Buffer>;
+    html(report: options_report): Promise<Buffer>;
+    xml(report: options_report, embeddingImages?: boolean): Promise<Buffer>;
+    export(report: options_report, type: "pdf" | "xml" | "html" | "docx" | "xlsx" | "pptx", embeddingImages?: boolean): Promise<Buffer>;
     compileJRXMLInDirSync(params: {
         dir: string;
         dstFolder?: string | undefined;
