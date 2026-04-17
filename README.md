@@ -39,8 +39,12 @@ import { JasperModule } from 'node-jasper-ts/nest';
       java: ["-Djava.awt.headless=true", "-Xms256m", "-Xmx512m"],
     }),
   ],
-  controllers: [],
-  providers: [],
+  controllers: [
+    ReportController
+  ],
+  providers: [
+    ReportService
+  ],
 })
 export class AppModule { }
 ```

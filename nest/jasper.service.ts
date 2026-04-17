@@ -24,6 +24,12 @@ export class JasperService {
         @Inject('JASPER_OPTIONS') private readonly baseOptions: optionsJasperInitial
     ) { }
 
+    /**
+     * Creates a report helper bound to a folder of JRXML files and a configured connection.
+     *
+     * @param options.dirReport Folder containing the main report and its subreports.
+     * @param options.conn Connection key used to resolve the configured datasource.
+     */
     async createReport(options: { dirReport: string, conn: string }): Promise<Report> {
         let tmpPath = this.baseOptions.tmpPath ?
             path.resolve(process.cwd(), this.baseOptions.tmpPath)
@@ -54,6 +60,12 @@ export class JasperService {
         );
     }
 
+    /**
+     * Reads report parameters from a JRXML folder, excluding Jasper internal system parameters.
+     *
+     * @param options.dirReport Folder containing the JRXML files to inspect.
+     * @param options.grouped When true, merges all parameters into a single object.
+     */
     async getParameters(options: { dirReport: string, grouped?: boolean }): Promise<ParametersJASPER> {
         let params = await JasperParametersFolder({ path: options.dirReport, grouped: options.grouped });
         for (const param in params) {
@@ -74,6 +86,11 @@ class Report {
         private dirReport: string
     ) { }
 
+    /**
+     * Normalizes and stores report parameters before export.
+     *
+     * @param data Object containing the parameter values that should be formatted for Jasper.
+     */
     async loadParameters(data: { [key: string]: any }): Promise<Report> {
         let params = await JasperParametersFolder({ path: this.dirReport, grouped: true });
         for (const key of Object.keys(data)) {
@@ -93,6 +110,9 @@ class Report {
         return this;
     }
 
+    /**
+     * Exports the current report as PDF using the loaded parameters.
+     */
     async pdf() {
         const pdfBuffer = await this.jasperInstance.pdf({
             report: this.hierarchy.hierarchy.value.name,
@@ -104,6 +124,9 @@ class Report {
         return pdfBuffer;
     }
 
+    /**
+     * Exports the current report as XLSX using the loaded parameters.
+     */
     async xlsx() {
         const xlsxBuffer = await this.jasperInstance.xlsx({
             report: this.hierarchy.hierarchy.value.name,
@@ -115,6 +138,9 @@ class Report {
         return xlsxBuffer;
     }
 
+    /**
+     * Exports the current report as DOCX using the loaded parameters.
+     */
     async docx() {
         const docxBuffer = await this.jasperInstance.docx({
             report: this.hierarchy.hierarchy.value.name,
@@ -125,6 +151,11 @@ class Report {
         return docxBuffer;
     }
 
+    /**
+     * Exports the current report as XML using the loaded parameters.
+     *
+     * @param embeddingImages When true, embeds report images directly into the XML output.
+     */
     async xml(embeddingImages?: boolean) {
         const xmlBuffer = await this.jasperInstance.xml({
             report: this.hierarchy.hierarchy.value.name,
@@ -135,6 +166,9 @@ class Report {
         return xmlBuffer;
     }
 
+    /**
+     * Exports the current report as HTML using the loaded parameters.
+     */
     async html() {
         const htmlBuffer = await this.jasperInstance.html({
             report: this.hierarchy.hierarchy.value.name,
@@ -145,6 +179,9 @@ class Report {
         return htmlBuffer;
     }
 
+    /**
+     * Exports the current report as PPTX using the loaded parameters.
+     */
     async pptx() {
         const pptxBuffer = await this.jasperInstance.pptx({
             report: this.hierarchy.hierarchy.value.name,

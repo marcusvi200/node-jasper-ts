@@ -1,4 +1,17 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules"]
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "index.ts",
+    "jasper-utils.ts",
+    "nest/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src",
+    "test.ts"
+  ]
 }
