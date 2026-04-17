@@ -1,0 +1,4 @@
+{
+  "main": "../dist/nest/index.js",
+  "types": "../dist/nest/index.d.ts"
+}

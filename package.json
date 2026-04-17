@@ -1,6 +1,6 @@
 {
   "name": "node-jasper-ts",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "JasperReports in Node.js - Compatible with NestJS",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,16 +11,16 @@
       "default": "./dist/index.js"
     },
     "./nest": {
-      "types": "./dist/nest/index.d.ts",
-      "require": "./dist/nest/index.js",
-      "default": "./dist/nest/index.js"
+      "types": "./nest/index.d.ts",
+      "require": "./nest/index.js",
+      "default": "./nest/index.js"
     },
     "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       "nest": [
-        "dist/nest/index.d.ts"
+        "nest/index.d.ts"
       ],
       "*": [
         "dist/index.d.ts"
@@ -30,6 +30,9 @@
   "files": [
     "dist",
     "jar",
+    "nest/index.js",
+    "nest/index.d.ts",
+    "nest/package.json",
     "README.md"
   ],
   "scripts": {
