@@ -13,3 +13,4 @@ export interface optionsJasperInitial {
     javaInstance?: any;
     debug?: 'ALL' | 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL' | 'OFF' | 'off';
 }
+//# sourceMappingURL=jasper-options.interface.d.ts.map

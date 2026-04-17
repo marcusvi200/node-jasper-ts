@@ -24,3 +24,4 @@ declare const convertDateToTimestamp: typeof JasperUtils.convertDateToTimestamp;
 declare const formatValue: typeof JasperUtils.formatValue;
 declare const typeParam: typeof JasperUtils.typeParam;
 export { convertDateToTime, convertDateToTimestamp, formatValue, typeParam };
+//# sourceMappingURL=jasper-utils.d.ts.map

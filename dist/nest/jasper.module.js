@@ -11,6 +11,11 @@ exports.JasperModule = void 0;
 const common_1 = require("@nestjs/common");
 const jasper_service_1 = require("./jasper.service");
 let JasperModule = JasperModule_1 = class JasperModule {
+    /**
+     * Registers the Jasper service globally in the Nest application.
+     *
+     * @param options Base Jasper configuration shared by all reports created through the service.
+     */
     static forRoot(options) {
         return {
             module: JasperModule_1,

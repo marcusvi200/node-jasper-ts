@@ -32,6 +32,7 @@ const xml2js = __importStar(require("xml2js"));
 const JasperUtils = __importStar(require("./jasper-utils"));
 exports.JasperUtils = JasperUtils;
 function getTempPath(suffix = '') {
+    // Gera 8 bytes aleatórios e converte para string hexadecimal (ex: 'f3a2b1c4')
     const uniqueId = (0, node_crypto_1.randomBytes)(8).toString('hex');
     const fileName = `temp_${uniqueId}${suffix}`;
     return path.join((0, node_os_1.tmpdir)(), fileName);
@@ -39,10 +40,12 @@ function getTempPath(suffix = '') {
 function buildHierarchy(params) {
     const map = {};
     const root = { value: null, children: [] };
+    // Mapeia os nós pelo nome
     for (const item of params) {
         item.children = [];
         map[item.name] = item;
     }
+    // Constrói a hierarquia
     for (const item of params) {
         const parent = map[item.parent || '-'];
         if (parent) {
@@ -59,15 +62,19 @@ var java = null, extend = require('extend');
 var defaults = { reports: {}, drivers: {}, conns: {}, tmpPath: '/tmp' };
 async function walk(dir) {
     let results = [];
+    // 1. Lendo o diretório (readdir já retorna Promise no node:fs/promises)
     const list = await fs.readdir(dir);
+    // 2. Usamos for...of para que o await funcione corretamente
     for (const file of list) {
         const filePath = path.join(dir, file);
         const fileStat = await fs.stat(filePath).catch(() => null);
         if (fileStat && fileStat.isDirectory()) {
+            // 3. Recursão: aguarda os resultados da subpasta e concatena
             const res = await walk(filePath);
             results = results.concat(res);
         }
         else {
+            // 4. É um arquivo, adiciona à lista
             results.push(filePath);
         }
     }
@@ -97,6 +104,9 @@ class JasperTS {
     constructor(options) {
         this.options = options;
     }
+    /**
+     * Initializes the Java bridge, loads Jasper dependencies, and prepares the instance for report operations.
+     */
     async init() {
         if (this._isInitialized)
             return;
@@ -131,34 +141,43 @@ class JasperTS {
         const [jrJars, driverJars] = await Promise.allSettled([
             (async () => {
                 try {
+                    // 1. Verifica o status das pastas lib e dist
+                    // Usamos catch() retornando null para o caso da pasta não existir
                     const [statsLib, statsDist] = await Promise.all([
                         fs.stat(path.join(jrPath, 'lib')).catch(() => null),
                         fs.stat(path.join(jrPath, 'dist')).catch(() => null)
                     ]);
                     const hasLibAndDist = statsLib?.isDirectory() && statsDist?.isDirectory();
                     if (hasLibAndDist) {
+                        // 2. Varre as duas pastas em paralelo
                         const [distFiles, libFiles] = await Promise.all([
                             walk(path.join(jrPath, 'dist')),
                             walk(path.join(jrPath, 'lib'))
                         ]);
+                        // 3. Junta os resultados (Flat array)
                         return [...distFiles, ...libFiles];
                     }
                     else {
+                        // 4. Fallback: varre apenas a raiz
                         return await walk(jrPath);
                     }
                 }
                 catch (err) {
                     console.error("Erro ao buscar JARs do Jasper:", err);
-                    throw err;
+                    throw err; // Lança o erro para quem chamou tratar
                 }
             })(),
             (async () => {
+                // 1. Se não houver drivers, retorna um array vazio imediatamente
                 if (!this.options.drivers || !Array.isArray(this.options.drivers)) {
                     return [];
                 }
+                // 2. Usamos .map para transformar os caminhos de forma limpa
+                // path.resolve garante que o caminho seja absoluto para o node-java
                 return this.options.drivers.map(driver => path.resolve(this.parentPath, driver.path));
             })()
         ]);
+        // BEGIN: loadJars
         let jrJarsValue = [];
         if (jrJars.status === 'fulfilled') {
             jrJarsValue = jrJars.value;
@@ -167,12 +186,14 @@ class JasperTS {
         if (driverJars.status === 'fulfilled') {
             driverJarsValue = driverJars.value;
         }
-        const allJars = [...jrJarsValue, ...driverJarsValue];
+        const allJars = [...jrJarsValue, ...driverJarsValue]; // Uso de Spread operator (mais moderno que concat)
         for (const file of allJars) {
             if (path.extname(file) === '.jar') {
-                java.classpath.push(path.resolve(file));
+                java.classpath.push(path.resolve(file)); // resolve garante o caminho absoluto
             }
         }
+        // END: loadJars
+        // BEGIN: debug e loadClass
         if (!this.options.debug) {
             this.options.debug = 'off';
         }
@@ -181,11 +202,15 @@ class JasperTS {
         if (!levels.includes(debugLevel)) {
             this.options.debug = 'DEBUG';
         }
+        // Nota: O código de Log4j continua comentado para evitar o SIGSEGV mencionado no seu legado.
+        // Se um dia for reativar, use java.newInstanceSync moderno.
+        // --- 2. Equivalente ao segundo bloco (Carga dos Drivers no ClassLoader) ---
         try {
             const systemClassLoader = java.callStaticMethodSync("java.lang.ClassLoader", "getSystemClassLoader");
             if (this.options.drivers && Array.isArray(this.options.drivers)) {
                 for (const driver of this.options.drivers) {
                     if (driver.class) {
+                        // Carrega a classe do driver e instancia para registrar no DriverManager do Java
                         systemClassLoader.loadClassSync(driver.class).newInstanceSync();
                     }
                 }
@@ -195,6 +220,7 @@ class JasperTS {
             console.error("Erro ao carregar classes dos drivers JDBC:", err);
             throw err;
         }
+        // END: debug e loadClass
         this.dm = java.import('java.sql.DriverManager');
         this.jreds = java.import('net.sf.jasperreports.engine.JREmptyDataSource');
         this.jrjsonef = java.import('net.sf.jasperreports.engine.data.JsonDataSource');
@@ -210,36 +236,90 @@ class JasperTS {
         extend(self, defaults, this.options);
         this._isInitialized = true;
     }
+    /**
+     * Registers a callback intended to run when the instance is ready to be used.
+     *
+     * @param f Optional callback to be stored as the ready handler.
+     */
     ready(f) {
         var self = this;
         this.ready = f;
     }
+    /**
+     * Adds or replaces a report definition in the current Jasper instance.
+     *
+     * @param name Report key used later when exporting by report name.
+     * @param def Report definition containing paths, connection, and optional data.
+     */
     add(name, def) {
         this.reports[name] = def;
     }
+    /**
+     * Converts a JavaScript numeric value into a Java BigDecimal instance for Jasper parameters.
+     *
+     * @param value Number or numeric string to be converted before sending it to Java.
+     */
     parseBigDecimal(value) {
         java.import('java.math.BigDecimal');
         let vBD = java.newInstanceSync('java.math.BigDecimal', value.toString());
         return vBD;
     }
+    /**
+     * Exports a report as DOCX.
+     *
+     * @param report Report name or report configuration used to render the output.
+     */
     docx(report) {
         return this.export(report, 'docx');
     }
+    /**
+     * Exports a report as XLSX.
+     *
+     * @param report Report name or report configuration used to render the output.
+     */
     xlsx(report) {
         return this.export(report, 'xlsx');
     }
+    /**
+     * Exports a report as PPTX.
+     *
+     * @param report Report name or report configuration used to render the output.
+     */
     pptx(report) {
         return this.export(report, 'pptx');
     }
+    /**
+     * Exports a report as PDF.
+     *
+     * @param report Report name or report configuration used to render the output.
+     */
     pdf(report) {
         return this.export(report, 'pdf');
     }
+    /**
+     * Exports a report as HTML.
+     *
+     * @param report Report name or report configuration used to render the output.
+     */
     html(report) {
         return this.export(report, 'html');
     }
+    /**
+     * Exports a report as XML.
+     *
+     * @param report Report name or report configuration used to render the output.
+     * @param embeddingImages When true, embeds report images directly into the XML export.
+     */
     xml(report, embeddingImages = true) {
         return this.export(report, 'xml', embeddingImages);
     }
+    /**
+     * Renders one or more reports and exports the final result in the requested format.
+     *
+     * @param report Report name, definition, array of definitions, or wrapper object with data overrides.
+     * @param type Output format to generate.
+     * @param embeddingImages Applies only to XML export and controls whether images are embedded.
+     */
     export(report, type, embeddingImages = false) {
         return new Promise(async (resolve, reject) => {
             if (["pdf", "xml", "html", "docx", "xlsx", "pptx"].indexOf(type) === -1)
@@ -403,6 +483,12 @@ class JasperTS {
             }
         });
     }
+    /**
+     * Compiles every .jrxml file found directly inside a directory.
+     *
+     * @param params.dir Folder containing the JRXML files to compile.
+     * @param params.dstFolder Optional destination folder for generated .jasper files.
+     */
     async compileJRXMLInDirSync(params) {
         for (const file of (await fs.readdir(path.resolve(process.cwd(), params.dir)))) {
             if (path.extname(file) == '.jrxml') {
@@ -411,6 +497,11 @@ class JasperTS {
         }
         ;
     }
+    /**
+     * Compiles all report definitions already registered in this instance.
+     *
+     * @param dstFolder Optional output folder for compiled .jasper files.
+     */
     compileAllSync(dstFolder) {
         var self = this;
         for (var name in this.reports) {
@@ -420,6 +511,12 @@ class JasperTS {
             }
         }
     }
+    /**
+     * Compiles a single JRXML file into a Jasper file using the current instance configuration.
+     *
+     * @param jrxmlFile JRXML file path to compile.
+     * @param dstFolder Optional destination folder for the generated .jasper file.
+     */
     compileSync(jrxmlFile, dstFolder) {
         var self = this;
         var name = path.basename(jrxmlFile, '.jrxml');
@@ -427,6 +524,12 @@ class JasperTS {
         java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(process.cwd(), jrxmlFile), file);
         return file;
     }
+    /**
+     * Compiles every JRXML file found in the provided folder without needing an instance.
+     *
+     * @param params.path Folder that contains the JRXML files.
+     * @param params.dstFolder Destination folder for generated .jasper files.
+     */
     static async compileAllSync(params) {
         var filesCompiled = [];
         var files = await fs.readdir(params.path);
@@ -438,6 +541,13 @@ class JasperTS {
         }
         return filesCompiled;
     }
+    /**
+     * Compiles a single JRXML file without creating a JasperTS instance.
+     *
+     * @param params.pathFile Base folder used to resolve the JRXML path.
+     * @param params.jrxmlFile JRXML file name or relative path to compile.
+     * @param params.dstFolder Destination folder for the generated .jasper file.
+     */
     static async compileSync(params) {
         java = require('java');
         let pathJar = null;
@@ -455,6 +565,12 @@ class JasperTS {
         java.callStaticMethodSync("net.sf.jasperreports.engine.JasperCompileManager", "compileReportToFile", path.resolve(params.pathFile, path.join(params.pathFile, params.jrxmlFile)), file);
         return file;
     }
+    /**
+     * Reads the declared Jasper parameters from a JRXML or compiled Jasper file.
+     *
+     * @param options.jrxml Optional JRXML file path to inspect.
+     * @param options.jasper Optional compiled Jasper file path to inspect.
+     */
     getParametersSync(options) {
         var jasperReport = null;
         if (options.jasper) {
@@ -480,6 +596,12 @@ class JasperTS {
         }
         return result;
     }
+    /**
+     * Reads the declared Jasper parameters from a JRXML or compiled Jasper file without creating an instance.
+     *
+     * @param options.jrxml Optional JRXML file path to inspect.
+     * @param options.jasper Optional compiled Jasper file path to inspect.
+     */
     static async getParametersSync(options) {
         java = require('java');
         let pathJar = null;
@@ -516,6 +638,12 @@ class JasperTS {
         }
         return result;
     }
+    /**
+     * Reads parameters from all JRXML files in a folder.
+     *
+     * @param options.path Folder containing the JRXML files to inspect.
+     * @param options.grouped When true, merges all parameters into a single object keyed by parameter name.
+     */
     static async getParametersAll(options) {
         var files = await fs.readdir(options.path);
         var result = {};
@@ -536,6 +664,12 @@ class JasperTS {
         }
         return result;
     }
+    /**
+     * Lists every JRXML file in a folder tree and associates each one with a default connection.
+     *
+     * @param options.path Root folder to scan recursively for JRXML files.
+     * @param options.connDefault Connection key assigned to every discovered report.
+     */
     static async getReportsJRXML(options) {
         let jrxmls = [];
         let files = await walk(options.path);
@@ -546,6 +680,12 @@ class JasperTS {
         }
         return jrxmls;
     }
+    /**
+     * Converts a JavaScript dataset into a Jasper JSON data source.
+     *
+     * @param dataset Plain object or array that will be serialized to JSON.
+     * @param query JSON query used by Jasper to read the serialized dataset.
+     */
     toJsonDataSource(dataset, query) {
         var self = this;
         var jsonString = JSON.stringify(dataset);
@@ -554,6 +694,12 @@ class JasperTS {
         }));
         return new this.jrjsonef(new this.jbais(byteArray), query || '');
     }
+    /**
+     * Builds the report hierarchy for a folder of JRXML files and prepares metadata used by the Nest service.
+     *
+     * @param options.folder Folder containing the JRXML files to analyze.
+     * @param options.conn Connection key assigned to the discovered report definitions.
+     */
     static async mountHierarchy(options) {
         let folderCompile = path.resolve(options.folder);
         let contentFolder = await fs.readdir(folderCompile);
@@ -620,6 +766,11 @@ class JasperTS {
     }
 }
 exports.JasperTS = JasperTS;
+/**
+ * Creates a configured JasperTS instance.
+ *
+ * @param options Jasper initialization options such as report definitions, drivers, and connections.
+ */
 const JasperConfig = (options) => new JasperTS(options);
 exports.JasperConfig = JasperConfig;
 const JasperParameters = JasperTS.getParametersSync;
