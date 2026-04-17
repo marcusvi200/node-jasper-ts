@@ -607,7 +607,7 @@ class JasperTS {
         let pathJar = null;
         path.dirname(module.filename).split(path.sep).pop() === 'src' ?
             pathJar = path.join(path.dirname(module.filename), '../jar') :
-            pathJar = path.join(__dirname, './jar');
+            pathJar = path.join(__dirname, '../jar');
         let results = await walk(pathJar);
         for (const file of results) {
             if (path.extname(file) == '.jar') {

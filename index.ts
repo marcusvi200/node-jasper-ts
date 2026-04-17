@@ -745,7 +745,7 @@ export class JasperTS {
 
         path.dirname(module.filename).split(path.sep).pop() === 'src' ?
             pathJar = path.join(path.dirname(module.filename), '../jar') :
-            pathJar = path.join(__dirname, './jar');
+            pathJar = path.join(__dirname, '../jar');
 
 
         let results = await walk(pathJar);
