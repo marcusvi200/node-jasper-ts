@@ -1,7 +1,2 @@
-import { JasperService } from "./jasper.service"
-import { JasperModule } from "./jasper.module";
-
-export default {
-    JasperService,
-    JasperModule
-}
+export { JasperService } from "./jasper.service";
+export { JasperModule } from "./jasper.module";
